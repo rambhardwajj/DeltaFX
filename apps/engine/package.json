@@ -5,11 +5,16 @@
   "private": true,
   "scripts": {
     "dev": "bun run --watch src/index.ts"
-},
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@repo/config": "workspace:*",
+    "@repo/typescript-config": "workspace:*"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "redis": "^5.8.2"
   }
 }

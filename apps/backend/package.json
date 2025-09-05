@@ -8,8 +8,19 @@
   },
   "dependencies": {
     "@repo/config": "workspace:*",
-    "@repo/typescript-config": "workspace:*"
-  },  
+    "@repo/typescript-config": "workspace:*",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/nodemailer": "^7.0.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mailgen": "^2.0.29",
+    "nodemailer": "^7.0.6"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },

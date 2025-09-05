@@ -5,15 +5,14 @@ class RedisClient {
 
     constructor(private url: string) {
         this.client = createClient({ url: url });
-        this.client.on("error", (err) => console.error(`Error creating clinet: ${err}`));
+        this.client.on("error", (err) => console.error(`Error creating client...: ${err}`));
     }
     async connect() {
         if (!this.client.isOpen) {
             await this.client.connect();
             console.log("Redis connected at: ", this.url);
-        }
+        } 
     }
-
     async disconnect() {
         if (this.client.isOpen) this.client.disconnect()
     }
