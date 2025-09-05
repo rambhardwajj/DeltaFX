@@ -18,7 +18,6 @@ export const createOrder = asyncHandler( async(req, res) =>{
         }
 
         // add to queue
-
         // subscribe to the queue and get the latest ids
         // resolve the promise in when you received the response with the same id 
     })

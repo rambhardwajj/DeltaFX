@@ -39,18 +39,18 @@ const currentPrices : assetPriceI = {
 
 setInterval(() => {
   ASSETS.map((asset) => {
-    console.log(asset, currentPrices[asset]);
     if (currentPrices[asset]?.price === 0) {
       return;
     }
     publisher.XADD(asset, "*", {
       message: JSON.stringify(currentPrices[asset])
     })
+    console.log(asset, currentPrices[asset]);
     // console.log();
     // console.log(asset, currentPrices[asset], "PUBLISHED TO STREAM")
     // console.log();
   });
-}, 100);
+}, 1000);
 
 const main = async () => {
   const ws = new WebSocket("wss://ws.backpack.exchange");
