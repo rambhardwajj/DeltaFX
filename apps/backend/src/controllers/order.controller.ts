@@ -1,24 +1,24 @@
 import { resolve } from "bun";
 import asyncHandler from "../utils/asyncHandler";
-import {config, createRedis} from "@repo/config"
+import {config} from "@repo/config"
+import { ApiResponse } from "../utils/ApiResponse";
+import { createClient } from "redis";
 
-const redisClient = createRedis(config.REDIS_URL)
+
+const backendPublisher = createClient({
+    url: config.REDIS_URL
+})
+
+async function connectRedis() {
+    await backendPublisher.connect();
+}
+connectRedis();
 
 export const createOrder = asyncHandler( async(req, res) =>{
-    const {asset, type, margin, leverage , slippage }  = req.body;
-
+    console.log("Create order route")
+    const {asset, type, margin, leverage, slippage} = req.body
     const uuid = crypto.randomUUID()
-    const orderPromise = new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-            reject()
-        },5000)
 
-        const order = {
-           orderId: uuid,  asset, type, margin, leverage, slippage
-        }
-
-        // add to queue
-        // subscribe to the queue and get the latest ids
-        // resolve the promise in when you received the response with the same id 
-    })
+    const data = {uuid, asset , type, margin, leverage, slippage}
+    res.status(200).json(new ApiResponse(200, "created order",data ))
 })

@@ -10,22 +10,26 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(
   cors({
+    origin: true, // Reflect request origin
     credentials: true,
-    allowedHeaders: ["http://localhost:3000"],
   })
 );
 
-import authRouter from "./routes/auth.routes"
 import { errorHandler } from "./middlewares/error.middleware";
+import { ApiResponse } from "./utils/ApiResponse";
 
-app.use("/api/v1/auth", authRouter )
+import authRouter from "./routes/auth.routes";
+import orderRouter from "./routes/order.routes";
 
 app.get("/", (req, res) => {
+  console.log("hey");
   res.status(200).json({ message: "health check" });
 });
 
-app.use(errorHandler)
+app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/trade", orderRouter);
+
+app.use(errorHandler);
 app.listen(config.PORT_BACKEND, () => {
   console.log("listening on port", config.PORT_BACKEND);
 });
-

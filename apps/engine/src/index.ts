@@ -4,7 +4,6 @@ import { ASSETS } from "@repo/config";
 const subscriberClient = createClient({
   url: "redis://localhost:6379",
 });
-
 async function connectSubscriber() {
   try {
     await subscriberClient.connect();
@@ -12,7 +11,6 @@ async function connectSubscriber() {
     console.log("error in connecting to subscriber", error);
   }
 }
-
 connectSubscriber();
 
 subscriberClient.on("error", (err) => {
@@ -20,35 +18,50 @@ subscriberClient.on("error", (err) => {
 });
 
 let lastId = "$";
-
-async function main() {
-  while (true) {
-    const res = await subscriberClient.xRead(
-        [...ASSETS.map((asset) => {
-            return {
-                key: asset,
-                id: lastId
-            }
-        })], 
+const currPrices = {
+  ...Object.fromEntries(
+    ASSETS.map((asset) => {
+      return [
+        asset,
         {
-            BLOCK: 0,
-            COUNT: 1
-        }
-    );
+          offset: "$",
+          prices: 0,
+          decimal: 0,
+          timeStamp: Date.now(),
+        },
+      ];
+    })
+  ),
+};
 
-    if( res === null) continue;
+async function getCurrentPrices(asset: string) {
+  const res = await subscriberClient.xRead(
+    { key: asset, id: currPrices[asset]!.offset },
+    {
+      BLOCK: 0,
+      COUNT: 1,
+    }
+  );
 
-    // console.log(res)
-    if (res) {
-        // @ts-ignore 
-        for (const stream of res) {
-          for (const message of stream.messages) {
-            console.log(`Stream: ${stream.name}`, message);
-          }
-        }
-      }
-    
-  }
+  if (res === null) return;
+
+  // @ts-ignore
+  const { name, messages } = res[0];
+  const id = messages[0].id;
+  const message = JSON.parse(messages[0].message.message);
+
+  currPrices[name] = {
+    offset: id,
+    prices: message.price,
+    decimal: message.decimal,
+    timeStamp: message.timeStamp,
+  };
+
+  console.log(currPrices);
 }
 
-main();
+setInterval(() => {
+  ASSETS.map((asset) => {
+    getCurrentPrices(asset);
+  });
+}, 100);

@@ -30,7 +30,7 @@ export const singin = asyncHandler(async (req, res) => {
         button: {
           color: "#22BC66",
           text: "Verify Email",
-          link: `http://localhost:4001/verify/${token}`,
+          link: `http://localhost:4000/api/v1/auth/verify/${token}`,
         },
       },
       outro: "Need help? Just reply to this email.",
@@ -76,9 +76,9 @@ export const verify = asyncHandler(async (req, res) => {
     res
       .status(200)
       .cookie("authToken", token, {
-        httpOnly: true,
-        secure: false,
-        sameSite:  "none" as const,
+        // httpOnly: true,
+        secure: true,
+        // sameSite:  "none" as const,
         maxAge: 24 * 60 * 60 * 1000,
       })
       .json({ message: "cookie set" });
