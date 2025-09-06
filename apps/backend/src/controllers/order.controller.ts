@@ -1,24 +1,62 @@
-import { resolve } from "bun";
 import asyncHandler from "../utils/asyncHandler";
-import {config} from "@repo/config"
 import { ApiResponse } from "../utils/ApiResponse";
-import { createClient } from "redis";
+import { v4 as uuidv4 } from "uuid";
+import { validate as uuidValidate } from "uuid";
+import { redisProducer } from "../config/redisProducer";
+import { CustomError } from "../utils/CustomError";
+import { waitForId } from "../utils/queueWorker";
 
+export const createOrder = asyncHandler(async (req, res) => {
+  console.log("Create order route");
+  const { asset, type, margin, leverage, slippage } = req.body;
+  const orderId = uuidv4();
+  const orderDataForEngine = {
+    orderId,
+    asset,
+    type,
+    margin,
+    leverage,
+    slippage,
+  };
 
-const backendPublisher = createClient({
-    url: config.REDIS_URL
-})
+  redisProducer.xAdd("stream", "*", {
+    data: JSON.stringify({
+      streamName: "trade-create",
+      data: orderDataForEngine,
+    }),
+  });
 
-async function connectRedis() {
-    await backendPublisher.connect();
-}
-connectRedis();
+  try {
+    const response = await waitForId(orderId);
+    console.log("response-> ", response);
+  } catch (error) {
+    throw new CustomError(500, "server error");
+  }
 
-export const createOrder = asyncHandler( async(req, res) =>{
-    console.log("Create order route")
-    const {asset, type, margin, leverage, slippage} = req.body
-    const uuid = crypto.randomUUID()
+  res
+    .status(200)
+    .json(new ApiResponse(200, "created order", orderDataForEngine));
+});
 
-    const data = {uuid, asset , type, margin, leverage, slippage}
-    res.status(200).json(new ApiResponse(200, "created order",data ))
-})
+export const closeOrder = asyncHandler(async (req, res) => {
+  console.log("close order route");
+  const { orderId } = req.body;
+  if (!uuidValidate(orderId)) {
+    throw new CustomError(403, "Not a valid uuid");
+  }
+  redisProducer.xAdd("stream", "*", {
+    data: JSON.stringify({
+      streamName: "trade-close",
+      data: { orderId },
+    }),
+  });
+
+    try {
+    const response = await waitForId(orderId);
+    console.log("response-> ", response);
+  } catch (error) {
+    throw new CustomError(500, "server error");
+  }
+
+  res.status(200).json(new ApiResponse(200, "close order done", orderId));
+});

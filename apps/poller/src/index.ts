@@ -37,15 +37,15 @@ const currentPrices: assetPriceI = {
 setInterval(() => {
   ASSETS.map((asset) => {
     if (currentPrices[asset]?.price === 0) return;
-    console.log( asset + " -> " + JSON.stringify(currentPrices[asset]));
+    console.log("currPrices" + " -> " + JSON.stringify(currentPrices));
 
-    publisher.XADD(asset, "*", {
-      message: JSON.stringify(currentPrices[asset]),
+    publisher.XADD("stream", "*", {
+      data: JSON.stringify({
+        streamName: "curr-prices",
+        data: currentPrices
+    }),
     });
-
-  }
-
-);
+  });
 }, 1000);
 
 const main = async () => {
