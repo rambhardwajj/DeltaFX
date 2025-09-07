@@ -1,6 +1,5 @@
 import { createClient } from "redis";
 import { ASSETS, config } from "@repo/config";
-// import {prisma} from "@repo/db"
 
 const subscriberClient = createClient({
   url: "redis://localhost:6379",
@@ -18,7 +17,6 @@ async function connectRedis() {
   }
 }
 connectRedis();
-
 subscriberClient.on("error", (err) => {
   console.error(err);
 });
@@ -38,11 +36,19 @@ const currPrices = {
     })
   ),
 };
-const users = new Map<string, any>();
 
-interface ResponseDataI{
-  
+interface BalanceAmt {
+  balance: number,
+  decimal: number
 }
+
+interface UserI {
+  id: string,
+  email: string, 
+  balance:  Map<string, BalanceAmt>
+}
+
+const users = new Map<string, UserI>();
 
 function returnResponseToStream(
   stream: string,
@@ -83,18 +89,19 @@ async function receiveStreamData(stream: string) {
       console.log();
       console.log(data);
     }
+// ------------------------------------------------
     if (streamName === "trade-create") {
       console.log();
       console.log(data);
 
-      if ( !data.orderId || !data.asset || !data.type || !data.margin || !data.margin || !data.slippage) {
-        // return 
+      if ( !data.orderId || !data.asset || !data.type || !data.margin || !data.slippage ) {
+
       }
 
       const tradeResultData = await processTradeCreation();
-     
       
-      
+      // returnResponseToStream("return-stream", )
+
       publisherClient.xAdd("return-stream", "*", {
         data: JSON.stringify({
           success: false,
@@ -107,27 +114,91 @@ async function receiveStreamData(stream: string) {
       console.log();
       console.log(data);
 
-      publisherClient.xAdd("return-stream", "*", {
-        data: JSON.stringify({
-          id: data.orderId,
-        }),
-      });
+      const closeOrderData = {
+        id : data.orderId
+      }
+
+      returnResponseToStream("return-stream", true, "order closed", 200, closeOrderData)
+
+      // publisherClient.xAdd("return-stream", "*", {
+      //   data: JSON.stringify({
+      //     id: data.orderId,
+      //   }),
+      // });
 
       console.log("orderClose data sent to Return Queue");
     }
+// ------------------------------------------------
     if (streamName === "create-user") {
       console.log();
-      console.log(data);
+      // console.log(data);
       // process this data and send ack id
-      if (users.has(data.userId)) {
+
+      if( !data.userId || !data.data.email ){
+         returnResponseToStream("return-stream", false, "UserId or email missing", 400, null)
+         continue;
       }
-      publisherClient.xAdd("return-stream", "*", {
-        data: JSON.stringify({
-          id: data.userId,
-        }),
-      });
+
+      const balanceMap = new Map<string, BalanceAmt >();
+
+      balanceMap.set("USD", {balance: 500000, decimal: 2})
+      const userDataToStore = {
+        id: data.userId,
+        email: data.data.email,
+        balance : balanceMap
+      }
+
+
+      if (!users.has(data.userId)) {
+        users.set(data.userId, userDataToStore)
+      }
+      returnResponseToStream("return-stream",true, "User Created in Engine", 200, userDataToStore )
+      console.log("users map- >  " , users)
     }
+// ------------------------------------------------
+    if( streamName === "get-user-balance"){
+      if( !data.userId || !users.has(data.userId)) {
+        console.log("get-user-bal: Either Id or user doesnot exits")
+        returnResponseToStream("return-stream", false, "Cannot get balance as userId is null", 404, null)
+        continue;
+      }
+
+      if(users.has(data.userId)){
+        const balanceMap = users.get(data.userId)!.balance;
+        const balanceSend = {
+          id: data.userId,
+          userBalance : Object.fromEntries(balanceMap)
+        }
+
+        console.log("user balance sent to be", balanceSend)
+        returnResponseToStream("return-stream", true, "User balance returned", 200, balanceSend )
+      }else{
+        returnResponseToStream("return-stream", false, "Cannot get balance as userId is null", 404, null)
+      }
+    }
+    if(streamName === "get-usd-balance"){
+      if( !data.userId || !users.has(data.userId)) {
+        returnResponseToStream("return-stream", false, "Cannot get balance as userId is null", 404, null)
+        continue;
+      }
+
+      if(users.has(data.userId)){
+        const userBalance = users.get(data.userId)?.balance
+        if(userBalance?.get("USD")){
+          const usdBalance = userBalance.get("USD");
+          const usdBalanceResponse = {
+            id: data.userId,
+            usdBalance : usdBalance
+          }
+
+          console.log("sent usd balance to backend ", usdBalanceResponse)
+          returnResponseToStream("return-stream", true, "USD balance returned for the user", 200, usdBalanceResponse)
+        }
+      }
+    }
+
   }
+
 }
 receiveStreamData("stream");
 

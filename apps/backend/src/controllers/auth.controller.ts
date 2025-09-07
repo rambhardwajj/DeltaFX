@@ -2,7 +2,6 @@ import asyncHandler from "../utils/asyncHandler";
 
 import nodemailer from "nodemailer";
 import Mailgen from "mailgen";
-import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { CustomError } from "../utils/CustomError";
 import { v4 as uuidv4 } from "uuid";
@@ -11,9 +10,6 @@ import { config } from "@repo/config";
 import { waitForId } from "../utils/queueWorker";
 import { ApiResponse } from "../utils/ApiResponse";
 import { prisma } from "@repo/db";
-
-// console.log(prisma)
-
 
 const authRedisProducer = createClient({
   url: config.REDIS_URL,
@@ -27,7 +23,7 @@ connectAuthRedisProducer();
 export const singin = asyncHandler(async (req, res) => {
   const { email } = req.body;
 
-  const token = jwt.sign({ email }, "jsonsecret", { expiresIn: "1h" });
+  const token = jwt.sign({ email }, config.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
 
   console.log(email);
 
@@ -76,7 +72,7 @@ export const singin = asyncHandler(async (req, res) => {
     html: html, // HTML body
   });
 
-  res.status(200).json({ message: "email sent " });
+  res.status(200).json({ message: "email sent to the user" });
 });
 
 export const verify = asyncHandler(async (req, res) => {
@@ -85,18 +81,19 @@ export const verify = asyncHandler(async (req, res) => {
   if (!token) throw new CustomError(400, "token is invalid");
 
   try {
-    const decoded = jwt.verify(token, "jsonsecret");
-    const email = decoded;
-    console.log(decoded);
+    const decoded = jwt.verify(token, config.ACCESS_TOKEN_SECRET);
 
-    console.log("Verified email:", email);
+    if(!decoded){
+      throw new CustomError(400, "invalid token")
+    }
 
-    // db call from email to check if user exists
+    const jwtData = decoded
 
-    // else
-    // create uuid
+    console.log("jwt Payload:", jwtData);
+    // @ts-ignore 
+    const email = jwtData.email
     const userId = uuidv4();
-    const userData = { userId: userId, email: email };
+    const userData = { userId: userId, data: jwtData };
 
     authRedisProducer.xAdd("stream", "*", {
       data: JSON.stringify({
@@ -108,14 +105,43 @@ export const verify = asyncHandler(async (req, res) => {
 
     try {
       const response = await waitForId(userId);
+      if(!response){
+        throw new CustomError(400, "Wrong token")
+      }
       console.log("response from QueueWorker -> ", response);
     } catch (error) {
       throw new CustomError(500, "close order failed due to  server error");
     }
 
+    try {
+      const resFromDB = await prisma.user.create({
+        data:{
+          id: userId,
+          email: email as string,
+          lastLoggedId : new Date(Date.now()),
+        }
+      })
+      console.log("res from db ", resFromDB)
+  
+      if(!resFromDB){
+        throw new CustomError(500, "Failed to add user to the database"); 
+      }
+      
+    } catch (error) {
+      throw new CustomError(500, "Failed in creating user" )
+    }
+
+    let accessToken;
+    try {
+    accessToken  = jwt.sign({email, id:userId}, config.ACCESS_TOKEN_SECRET , {expiresIn: "7d"})
+      
+    } catch (error) {
+      throw new CustomError(500, "Error in creating jwt token ")
+    }
+
     res
       .status(200)
-      .cookie("authToken", token, {
+      .cookie("accessToken", accessToken, {
         // httpOnly: true,
         secure: true,
         // sameSite:  "none" as const,
@@ -134,6 +160,6 @@ export const logout = asyncHandler(async (req , res ) =>{
 
   // check if user exists 
 
-  res.clearCookie("authToken");
+  res.clearCookie("accessToken");
   res.status(200).json(new ApiResponse(200, "logged Out successfully", userId))
 })

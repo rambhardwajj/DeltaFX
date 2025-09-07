@@ -7,6 +7,7 @@ import { CustomError } from "../utils/CustomError";
 import { waitForId } from "../utils/queueWorker";
 
 export const createOrder = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
   console.log("Create order route");
   const { asset, type, margin, leverage, slippage } = req.body;
   const orderId = uuidv4();

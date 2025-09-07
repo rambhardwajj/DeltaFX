@@ -1,4 +1,5 @@
 import { redisConsumer } from "../config/redisConsumer";
+import { CustomError } from "./CustomError";
 
 const idPromseMap = new Map<string, (value: any) => any>();
 
@@ -25,10 +26,13 @@ async function runLoop() {
       // @ts-ignore
       const { name, messages } = res[0];
       const data = JSON.parse(messages[0].message.data);
-      console.log(data);
+      console.log("QUEUE WORKER : ",data);
       // if (!data) continue;
 
-      const id = data.id;// yahan pe data.data.id aaega after updation of response schema 
+      const id = data.data.id;// yahan pe data.data.id aaega after updation of response schema 
+      if( !id){
+        throw new CustomError(500, "Recieved Null Id from engine")
+      }
       if (idPromseMap.has(id)) {
         idPromseMap.get(id)!(data);
         idPromseMap.delete(id);
