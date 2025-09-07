@@ -7,49 +7,54 @@ let offset = "$";
 
 async function runLoop() {
   while (idPromseMap.size > 0) {
-    console.log("checking")
-    const res = await redisConsumer.xRead(
-      {
-        key: "return-stream",
-        id: offset,
-      },
-      {
-        BLOCK: 0,
-        COUNT: 1,
+    console.log("inSide runLoop");
+    try {
+      const res = await redisConsumer.xRead(
+        {
+          key: "return-stream",
+          id: offset,
+        },
+        {
+          BLOCK: 0,
+          COUNT: 1,
+        }
+      );
+
+      if (!res) continue;
+
+      // @ts-ignore
+      const { name, messages } = res[0];
+      const data = JSON.parse(messages[0].message.data);
+      console.log(data);
+      // if (!data) continue;
+
+      const id = data.id;
+      if (idPromseMap.has(id)) {
+        idPromseMap.get(id)!(data);
+        idPromseMap.delete(id);
       }
-    );
-
-    if (!res) continue;
-  
-    // console.log(res)
-
-    // @ts-ignore
-    const { name, messages } = res[0];
-    // console.log(name, messages)
-    const  data  = JSON.parse(messages[0].message.data);
-    console.log(data)
-    // if (!data) continue;
-
-    const orderId = data.orderId;
-    if (idPromseMap.has(orderId)) {
-      idPromseMap.get(orderId)!(data);
-      idPromseMap.delete(orderId)
+    } catch (error) {
+      console.log(error)
     }
   }
 }
 
-export const waitForId = async (orderId: string) => {
+export const waitForId = async (id: string) => {
   const newPromise = new Promise((resolve, reject) => {
-    idPromseMap.set(orderId, resolve);
-    console.log("promiseData mai ")
+    if (idPromseMap.has(id)) {
+      reject(null);
+      return;
+    }
+    
+    idPromseMap.set(id, resolve);
     setTimeout(() => {
+      idPromseMap.delete(id);
       reject(null);
     }, 5000);
   });
+
   if (idPromseMap.size === 1) {
     runLoop();
   }
-
-
   return newPromise;
 };

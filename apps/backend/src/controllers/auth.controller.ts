@@ -8,6 +8,12 @@ import { CustomError } from "../utils/CustomError";
 import { v4 as uuidv4 } from "uuid";
 import { createClient } from "redis";
 import { config } from "@repo/config";
+import { waitForId } from "../utils/queueWorker";
+import { ApiResponse } from "../utils/ApiResponse";
+import { prisma } from "@repo/db";
+
+// console.log(prisma)
+
 
 const authRedisProducer = createClient({
   url: config.REDIS_URL,
@@ -95,11 +101,17 @@ export const verify = asyncHandler(async (req, res) => {
     authRedisProducer.xAdd("stream", "*", {
       data: JSON.stringify({
         streamName: "create-user",
-        data: userData, 
+        data: userData,
       }),
     });
+    console.log("userData with userId " + userId + " sent to Engine");
 
-    // crate user in db
+    try {
+      const response = await waitForId(userId);
+      console.log("response from QueueWorker -> ", response);
+    } catch (error) {
+      throw new CustomError(500, "close order failed due to  server error");
+    }
 
     res
       .status(200)
@@ -114,3 +126,14 @@ export const verify = asyncHandler(async (req, res) => {
     console.log(error);
   }
 });
+
+export const logout = asyncHandler(async (req , res ) =>{
+  const userId = req.user.id;
+  if(!userId) throw new CustomError(400, "Invalid user Id in Logout")
+  console.log(userId)
+
+  // check if user exists 
+
+  res.clearCookie("authToken");
+  res.status(200).json(new ApiResponse(200, "logged Out successfully", userId))
+})

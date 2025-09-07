@@ -1,16 +1,18 @@
 import { createClient } from "redis";
 import { ASSETS, config } from "@repo/config";
+// import {prisma} from "@repo/db"
 
 const subscriberClient = createClient({
   url: "redis://localhost:6379",
 });
 const publisherClient = createClient({
-  url: config.REDIS_URL
-})
+  url: config.REDIS_URL,
+});
 async function connectRedis() {
   try {
     await subscriberClient.connect();
     await publisherClient.connect();
+    console.log("Redis connected");
   } catch (error) {
     console.log("error in connecting to subscriber", error);
   }
@@ -36,110 +38,92 @@ const currPrices = {
     })
   ),
 };
+const users = new Map<string, any>();
 
-// async function pollCurrPrices() {
-//   while (true) {
-//     const res = await subscriberClient.xRead(
-//       {
-//         key: "curr-prices",
-//         id: "$",
-//       },
-//       {
-//         BLOCK: 1,
-//         COUNT: 1,
-//       }
-//     );
-
-//     if (res === null) continue;
-
-//     // @ts-ignore
-//     const { name, messages } = res[0];
-//     const id = messages[0].id;
-//     const data = JSON.parse(messages[0].message.data);
-
-//     ASSETS.forEach((asset) => {
-//       currPrices[asset] = data[asset];
-//     });
-//     console.log(currPrices);
-//   }
-// }
-// // ------------------------------------------------------------------
-// async function getBackendTrades() {
-//   // console.log("got till here getbackend")
-//   while (true) {
-//     // console.log("in Backend trades engine ");
-//     const res = await subscriberClient.xRead(
-//       {
-//         key: "trade-create",
-//         id: "$",
-//       },
-//       {
-//         BLOCK: 1,
-//         COUNT: 1,
-//       }
-//     );
-//     if (!res) {
-//       console.log("no response");
-//       continue;
-//     }
-//     console.log(res);
-//   }
-// }
+function returnResponseToStream(
+  stream: string,
+  success: boolean,
+  message: string,
+  status: number,
+  data: any
+) {
+  publisherClient.xAdd(stream, "*", {
+    data: JSON.stringify({
+      success: success,
+      responseMessage: message,
+      status: status,
+      data: data
+    }),
+  });
+}
 
 async function receiveStreamData(stream: string) {
   while (true) {
-    const res = await subscriberClient.xRead({
-        key: "stream",
-        id: "$",
-      },{
-        BLOCK: 1,
-        COUNT: 1,
-      }
+    const responseFromStream = await subscriberClient.xRead(
+      { key: "stream", id: "$" },
+      { BLOCK: 0, COUNT: 1 }
     );
 
-    if (res === null) continue;
-    // @ts-ignore 
-    const {streamName, data} = JSON.parse(res[0].messages[0].message.data)
-    // console.log(res[0].messages[0].message.data.streamName);
-    // console.log(dataObj)
+    if (responseFromStream === null) {
+      console.log("Response from stream is null");
+      continue;
+    }
+    // @ts-ignore
+    const { streamName, data } = JSON.parse(responseFromStream[0].messages[0].message.data);
+    console.log(streamName);
 
     if (streamName === "curr-prices") {
       ASSETS.forEach((asset) => {
-        currPrices[asset] = data[asset] ;
+        currPrices[asset] = data[asset];
       });
-      console.log()
-      console.log(currPrices);
+      console.log();
+      console.log(data);
     }
-    if(streamName === "trade-create"){
-      console.log()
-      console.log(data)
+    if (streamName === "trade-create") {
+      console.log();
+      console.log(data);
 
-      publisherClient.xAdd('return-stream', "*", {
-        data : JSON.stringify({
-          orderId: data.orderId
-        })
-      })
-      console.log("open data sent")
+      if ( !data.orderId || !data.asset || !data.type || !data.margin || !data.margin || !data.slippage) {
+        // return 
+      }
+
+      const tradeResult = await processTradeCreation();
+      publisherClient.xAdd("return-stream", "*", {
+        data: JSON.stringify({
+          success: false,
+          id: data.orderId,
+        }),
+      });
+      console.log("orderOpen data sent to Return Queue ");
     }
-    if( streamName === "trade-close"){
-      console.log()
-      console.log(data)
+    if (streamName === "trade-close") {
+      console.log();
+      console.log(data);
 
-      publisherClient.xAdd('return-stream', "*", {
-        data : JSON.stringify({
-          orderId: data.orderId
-        })
-      })
-      console.log("close data sent")
-
+      publisherClient.xAdd("return-stream", "*", {
+        data: JSON.stringify({
+          id: data.orderId,
+        }),
+      });
+      console.log("orderClose data sent to Return Queue");
+    }
+    if (streamName === "create-user") {
+      console.log();
+      console.log(data);
+      // process this data and send ack id
+      if (users.has(data.userId)) {
+      }
+      publisherClient.xAdd("return-stream", "*", {
+        data: JSON.stringify({
+          id: data.userId,
+        }),
+      });
     }
   }
 }
-receiveStreamData("stream")
+receiveStreamData("stream");
 
-// pollCurrPrices();
-// getBackendTrades();
-
+async function processTradeCreation() {}
 
 // Approach 1 - Only getting prices from the queue when i hit the latest order
 // This approach wont work when we need to liquidate the order in real time as we dont have the latest prices
@@ -189,3 +173,56 @@ receiveStreamData("stream")
 // setInterval(() =>{
 //   console.log("hi")
 // }, 500)
+
+///----------
+// async function pollCurrPrices() {
+//   while (true) {
+//     const res = await subscriberClient.xRead(
+//       {
+//         key: "curr-prices",
+//         id: "$",
+//       },
+//       {
+//         BLOCK: 1,
+//         COUNT: 1,
+//       }
+//     );
+
+//     if (res === null) continue;
+
+//     // @ts-ignore
+//     const { name, messages } = res[0];
+//     const id = messages[0].id;
+//     const data = JSON.parse(messages[0].message.data);
+
+//     ASSETS.forEach((asset) => {
+//       currPrices[asset] = data[asset];
+//     });
+//     console.log(currPrices);
+//   }
+// }
+// // ------------------------------------------------------------------
+// async function getBackendTrades() {
+//   // console.log("got till here getbackend")
+//   while (true) {
+//     // console.log("in Backend trades engine ");
+//     const res = await subscriberClient.xRead(
+//       {
+//         key: "trade-create",
+//         id: "$",
+//       },
+//       {
+//         BLOCK: 1,
+//         COUNT: 1,
+//       }
+//     );
+//     if (!res) {
+//       console.log("no response");
+//       continue;
+//     }
+//     console.log(res);
+//   }
+// }
+
+// pollCurrPrices();
+// getBackendTrades();

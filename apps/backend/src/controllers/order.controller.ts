@@ -19,18 +19,20 @@ export const createOrder = asyncHandler(async (req, res) => {
     slippage,
   };
 
+  console.log("createOrder for orderId -> " + orderId + " sent to engine");
   redisProducer.xAdd("stream", "*", {
     data: JSON.stringify({
       streamName: "trade-create",
       data: orderDataForEngine,
     }),
   });
+ 
 
   try {
     const response = await waitForId(orderId);
-    console.log("response-> ", response);
+    console.log("response from QueueWorker -> ", response);
   } catch (error) {
-    throw new CustomError(500, "server error");
+    throw new CustomError(500, "create order Failed due to server error");
   }
 
   res
@@ -44,6 +46,8 @@ export const closeOrder = asyncHandler(async (req, res) => {
   if (!uuidValidate(orderId)) {
     throw new CustomError(403, "Not a valid uuid");
   }
+
+  console.log("closeOrder for orderId -> " + orderId + " sent to engine");
   redisProducer.xAdd("stream", "*", {
     data: JSON.stringify({
       streamName: "trade-close",
@@ -51,11 +55,11 @@ export const closeOrder = asyncHandler(async (req, res) => {
     }),
   });
 
-    try {
+  try {
     const response = await waitForId(orderId);
-    console.log("response-> ", response);
+    console.log("response from QueueWorker -> ", response);
   } catch (error) {
-    throw new CustomError(500, "server error");
+    throw new CustomError(500, "close order failed due to  server error");
   }
 
   res.status(200).json(new ApiResponse(200, "close order done", orderId));
