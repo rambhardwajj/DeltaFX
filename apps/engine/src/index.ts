@@ -40,6 +40,10 @@ const currPrices = {
 };
 const users = new Map<string, any>();
 
+interface ResponseDataI{
+  
+}
+
 function returnResponseToStream(
   stream: string,
   success: boolean,
@@ -48,7 +52,7 @@ function returnResponseToStream(
   data: any
 ) {
   publisherClient.xAdd(stream, "*", {
-    data: JSON.stringify({
+    data : JSON.stringify({
       success: success,
       responseMessage: message,
       status: status,
@@ -87,7 +91,10 @@ async function receiveStreamData(stream: string) {
         // return 
       }
 
-      const tradeResult = await processTradeCreation();
+      const tradeResultData = await processTradeCreation();
+     
+      
+      
       publisherClient.xAdd("return-stream", "*", {
         data: JSON.stringify({
           success: false,
@@ -105,6 +112,7 @@ async function receiveStreamData(stream: string) {
           id: data.orderId,
         }),
       });
+
       console.log("orderClose data sent to Return Queue");
     }
     if (streamName === "create-user") {
