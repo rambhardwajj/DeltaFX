@@ -59,8 +59,8 @@ export const singin = asyncHandler(async (req, res) => {
     port: 2525,
     secure: false, // true for 465, false for other ports
     auth: {
-      user: "062e545032666e",
-      pass: "2085583b4d7704",
+      user: "b87c4f2d58f263",
+      pass: "a01ba65a50628f",
     },
   });
 

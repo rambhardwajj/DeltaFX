@@ -8,10 +8,12 @@ import { waitForId } from "../utils/queueWorker";
 
 export const createOrder = asyncHandler(async (req, res) => {
   const userId = req.user.id;
+  if (!userId) throw new CustomError(404, "invalid userId please login again ");
   console.log("Create order route");
+
   const { asset, type, margin, leverage, slippage } = req.body;
   const orderId = uuidv4();
-  const orderDataForEngine = {
+  const orderData = {
     orderId,
     asset,
     type,
@@ -20,14 +22,28 @@ export const createOrder = asyncHandler(async (req, res) => {
     slippage,
   };
 
+if (margin <= 0 || leverage <= 0 || leverage > 100) {
+    throw new CustomError(400, "Invalid trading parameters");
+}
+if (slippage < 0 || slippage > 1000) { // Max 10%
+    throw new CustomError(400, "Invalid slippage");
+}
+if (!["BTC", "ETH", "SOL"].includes(asset)) { 
+    throw new CustomError(400, "Unsupported asset");
+}
+  const orderDataForEngine = {
+    userId: userId,
+    data: orderData,
+  };
+
   console.log("createOrder for orderId -> " + orderId + " sent to engine");
+
   redisProducer.xAdd("stream", "*", {
     data: JSON.stringify({
       streamName: "trade-create",
       data: orderDataForEngine,
     }),
   });
- 
 
   try {
     const response = await waitForId(orderId);

@@ -38,9 +38,16 @@ async function runLoop() {
         idPromseMap.delete(id);
       }
     } catch (error) {
-      console.log(error)
+      console.log(error);
+      // Clean up failed promises
+      for (let [id, resolve] of idPromseMap.entries()) {
+          resolve({ error: "Processing failed" });
+      }
+      idPromseMap.clear();
+
     }
   }
+  startLoop = false;
 }
 
 export const waitForId = async (id: string) => {
@@ -57,7 +64,8 @@ export const waitForId = async (id: string) => {
     }, 5000);
   });
 
-  if (idPromseMap.size === 1) {
+  if (!startLoop && idPromseMap.size === 1) {
+    startLoop = true;
     runLoop();
   }
   return newPromise;

@@ -1,5 +1,7 @@
 import { createClient } from "redis";
 import { ASSETS, config } from "@repo/config";
+import { processTradeCreation } from "./utils/processTrade";
+import type { BalanceAmt, OrderI, UserI } from "./utils/types";
 
 const subscriberClient = createClient({
   url: "redis://localhost:6379",
@@ -7,6 +9,14 @@ const subscriberClient = createClient({
 const publisherClient = createClient({
   url: config.REDIS_URL,
 });
+
+subscriberClient.on("error", (err) => {
+    console.error("Redis subscriber error:", err);
+});
+publisherClient.on("error", (err) => {
+    console.error("Redis publisher error:", err);
+});
+
 async function connectRedis() {
   try {
     await subscriberClient.connect();
@@ -21,7 +31,7 @@ subscriberClient.on("error", (err) => {
   console.error(err);
 });
 
-const currPrices = {
+export  const currPrices = {
   ...Object.fromEntries(
     ASSETS.map((asset) => {
       return [
@@ -29,26 +39,16 @@ const currPrices = {
         {
           offset: "$",
           prices: 0,
-          decimal: 0,
+          decimal: 2,
           timeStamp: Date.now(),
         },
       ];
     })
   ),
 };
-
-interface BalanceAmt {
-  balance: number,
-  decimal: number
-}
-
-interface UserI {
-  id: string,
-  email: string, 
-  balance:  Map<string, BalanceAmt>
-}
-
-const users = new Map<string, UserI>();
+export const users = new Map<string, UserI>();
+export const orders = new Map<string, OrderI>();
+export const user_balance = new Map<string, number>();
 
 function returnResponseToStream(
   stream: string,
@@ -73,7 +73,6 @@ async function receiveStreamData(stream: string) {
       { key: "stream", id: "$" },
       { BLOCK: 0, COUNT: 1 }
     );
-
     if (responseFromStream === null) {
       console.log("Response from stream is null");
       continue;
@@ -87,36 +86,42 @@ async function receiveStreamData(stream: string) {
         currPrices[asset] = data[asset];
       });
       console.log();
+      // data is coming with 10^2 
       console.log(data);
     }
 // ------------------------------------------------
     if (streamName === "trade-create") {
       console.log();
-      console.log(data);
+      console.log("Incoming data", data);
+      console.log("Orders Before: ", Object.fromEntries(orders))
 
-      if ( !data.orderId || !data.asset || !data.type || !data.margin || !data.slippage ) {
-
+      if (!data.userId  || !data.data.orderId || !data.data.asset || !data.data.type || !data.data.margin ||!data.data.leverage ||  !data.data.slippage ) {
+        console.log("some order data not foung")
+        returnResponseToStream("return-stream", false, "order data missing", 404, null)
+        continue;
       }
 
-      const tradeResultData = await processTradeCreation();
-      
-      // returnResponseToStream("return-stream", )
-
-      publisherClient.xAdd("return-stream", "*", {
-        data: JSON.stringify({
-          success: false,
-          id: data.orderId,
-        }),
+      const tradeResultData = await processTradeCreation({
+        userId: data.userId,
+        orderId: data.data.orderId,
+        asset: data.data.asset,
+        type: data.data.type,
+        margin: data.data.margin,
+        leverage: data.data.leverage,
+        slippage : data.data.slippage
       });
-      console.log("orderOpen data sent to Return Queue ");
+
+      console.log("tradeResData-> ", tradeResultData)
+
+      returnResponseToStream("return-stream",true, "trade result sent", 200, tradeResultData )
+      console.log("orderOpen data sent to Return Queue ")
     }
+
     if (streamName === "trade-close") {
       console.log();
       console.log(data);
 
-      const closeOrderData = {
-        id : data.orderId
-      }
+      const closeOrderData = { id : data.orderId }
 
       returnResponseToStream("return-stream", true, "order closed", 200, closeOrderData)
 
@@ -130,10 +135,6 @@ async function receiveStreamData(stream: string) {
     }
 // ------------------------------------------------
     if (streamName === "create-user") {
-      console.log();
-      // console.log(data);
-      // process this data and send ack id
-
       if( !data.userId || !data.data.email ){
          returnResponseToStream("return-stream", false, "UserId or email missing", 400, null)
          continue;
@@ -141,13 +142,14 @@ async function receiveStreamData(stream: string) {
 
       const balanceMap = new Map<string, BalanceAmt >();
 
+      // balance with 10^2 
       balanceMap.set("USD", {balance: 500000, decimal: 2})
+      user_balance.set(data.userId, 500000)
       const userDataToStore = {
         id: data.userId,
         email: data.data.email,
         balance : balanceMap
       }
-
 
       if (!users.has(data.userId)) {
         users.set(data.userId, userDataToStore)
@@ -202,7 +204,7 @@ async function receiveStreamData(stream: string) {
 }
 receiveStreamData("stream");
 
-async function processTradeCreation() {}
+
 
 // Approach 1 - Only getting prices from the queue when i hit the latest order
 // This approach wont work when we need to liquidate the order in real time as we dont have the latest prices

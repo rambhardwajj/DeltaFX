@@ -2,7 +2,7 @@ import WebSocket, { type RawData } from "ws";
 import { ASSETS } from "@repo/config";
 import { createClient } from "redis";
 
-const DECIMAL_PRECISION = 4;
+const DECIMAL_PRECISION = 2;
 
 const publisher = createClient({
   url: "redis://localhost:6379",
@@ -62,7 +62,7 @@ const main = async () => {
   ws.on("message", async (msg) => {
     const response = JSON.parse(msg.toString());
     currentPrices[response.stream] = {
-      price: response.data.a * 10 ** DECIMAL_PRECISION,
+      price: response.data.a * (10 ** DECIMAL_PRECISION),
       decimal: DECIMAL_PRECISION,
       timeStamp: response.data.T,
     };
