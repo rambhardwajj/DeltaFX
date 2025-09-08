@@ -1,6 +1,90 @@
-import { currPrices, users, user_balance, orders } from "../index";
+import { currPrices, users, user_balance, open_positions } from "../index";
+import { publisherClient } from "../index";
 
-export async function processTradeCreation(data: {
+import {
+  MinPriorityQueue,
+  MaxPriorityQueue,
+} from "@datastructures-js/priority-queue";
+
+type liqOrder = {
+  orderId: string;
+  liqPrice: number;
+  userId: string;
+  asset: string;
+};
+
+const longOrdersHm = new Map<string, MinPriorityQueue<liqOrder>>();
+const shortOrderHm = new Map<string, MaxPriorityQueue<liqOrder>>();
+
+const addInHmPq = (
+  orderType: string,
+  userId: string,
+  orderId: string,
+  liqPrice: number,
+  asset: string
+) => {
+  if (orderType === "long") {
+    if (!longOrdersHm.has(asset)) {
+      longOrdersHm.set(
+        asset,
+        new MinPriorityQueue<liqOrder>((o) => o.liqPrice)
+      );
+    }
+    longOrdersHm.get(asset)?.enqueue({ orderId, liqPrice, userId, asset });
+  } else {
+    if (!shortOrderHm.has(asset)) {
+      shortOrderHm.set(
+        asset,
+        new MaxPriorityQueue<liqOrder>((o) => o.liqPrice)
+      );
+    }
+    shortOrderHm.get(asset)?.enqueue({ orderId, liqPrice, userId, asset });
+  }
+};
+
+async function sendToReturnStream(
+  stream: string,
+  success: boolean,
+  message: string,
+  status: number,
+  data: any
+) {
+  await publisherClient.xAdd(stream, "*", {
+    data: JSON.stringify({
+      success: success,
+      responseMessage: message,
+      status: status,
+      data: data,
+    }),
+  });
+}
+
+function calculateLiquidationPrice(
+  margin: number,
+  entryPrice: number,
+  leverage: number,
+  type: string
+) {
+  let liquidationPrice: number;
+
+  if (type === "long") {
+    liquidationPrice = entryPrice - margin / leverage;
+  } else {
+    liquidationPrice = entryPrice + margin / leverage;
+  }
+
+  return liquidationPrice;
+}
+
+export async function processTradeCreation({
+  userId,
+  orderId,
+  asset,
+  type,
+  margin,
+  leverage,
+  slippage,
+}: {
   userId: string;
   orderId: string;
   asset: string;
@@ -9,68 +93,91 @@ export async function processTradeCreation(data: {
   leverage: number;
   slippage: number;
 }) {
-  const currPriceOfAsset = currPrices[data.asset]?.prices;
-  const decimal = currPrices[data.asset]?.decimal;
-  if (!currPriceOfAsset || !decimal) {
+  if (!users.has(userId)) {
+    await sendToReturnStream("return-stream", false, "User not found", 404, {
+      id: orderId,
+    });
     return;
   }
+
+  const assetPrice = currPrices[asset]?.prices;
+  if (!assetPrice) {
+    await sendToReturnStream("return-stream", false, "Price not found", 404, {
+      id: orderId,
+    });
+    return;
+  }
+
+  const bal = user_balance.get(userId) || 0;
+
+  const requiredMargin = Number(margin);
+  if (bal < requiredMargin) {
+    await sendToReturnStream(
+      "return-stream",
+      false,
+      "Insufficient balance",
+      400,
+      {
+        id: orderId,
+      }
+    );
+    return;
+  }
+
+  let autoLiquidate = false;
+
+  const quantity = margin / assetPrice;
+  const exposure = quantity * leverage;
+
+  user_balance.set(userId, bal - requiredMargin);
+  users
+    .get(userId)
+    ?.balance.set("USD", { balance: bal - requiredMargin, decimal: 2 });
+
+  users.get(userId)?.balance.set(asset, {
+    balance: quantity,
+    decimal: 2,
+  });
+
   let liquidationPrice;
+  if (type === "long" && leverage === 1) {
+    autoLiquidate = false;
+  } else 
+    autoLiquidate = true;
 
-  const quantity = (data.margin / decimal) / (currPriceOfAsset / decimal);
-  const exposedQuantity = quantity * data.leverage;
-
-  if (data.type === "long") {
-    liquidationPrice = currPriceOfAsset / decimal - data.margin / data.leverage;
-  } else {
-    liquidationPrice = currPriceOfAsset / decimal + data.margin / data.leverage;
-  }
-  let balanceToDeduct = data.margin / decimal;
-  const updatedBalance = updateUserBalance(balanceToDeduct, data.userId, decimal, data.asset);
-
-  if (!updatedBalance) {
-    console.log("Insufficient balance");
-  }
-
-  const currOrder = {
-    id: data.orderId,
-    asset: data.asset,
-    type: data.type,
-    margin: data.margin,
-    leverage: data.leverage,
-    slippage: data.slippage,
-    quantity: quantity,
-    exposedQuantity: quantity,
-    liquidationPrice: liquidationPrice,
+  const newOrder = {
+    id: orderId,
+    userId,
+    asset,
+    type,
+    margin: requiredMargin,
+    leverage: Number(leverage),
+    slippage: Number(slippage),
+    liquidationPrice,
+    entryPrice: assetPrice,
+    status: "OPEN",
   };
 
-  orders.set(data.orderId, currOrder);
-  return currOrder;
-}
+  if (autoLiquidate) {
+    liquidationPrice = calculateLiquidationPrice(
+      margin,
+      assetPrice,
+      leverage,
+      type
+    );
 
-function updateUserBalance(balanceToDeduct: number, userId: string, decimal: number, asset: string) {
-  const currBal = (users.get(userId)!.balance.get("USD")!.balance)/decimal
-
-  if (currBal < balanceToDeduct) {
-    console.log("insuff bal");
-    return null;
-    // throw new Error("insufficient balance");
+    addInHmPq(type, userId, orderId, liquidationPrice, asset);
   }
+  open_positions.set(orderId, newOrder);
 
-  // user ke balance ke map mai USD amount set 
-  users.get(userId)!.balance.get("USD")!.balance = (currBal* (10**decimal ))- (balanceToDeduct* (10**decimal));
-  // user ke usdbalance ke map mai amt set 
-  user_balance.set(userId, currBal - balanceToDeduct);
-
-  // set the asset with price 
-  const assetSuffix = asset.split(".")[1]
-  const assetName = assetSuffix?.split("_")[0]
-  console.log(assetName)
-
-  if(assetName)
-    users.get(userId)!.balance.get(assetName)!.balance
-
-  
-
-  //------------------------
-  return user_balance.get(userId);
+  await sendToReturnStream(
+      "return-stream",
+      true,
+      "Insufficient balance",
+      200,
+      {
+        id: orderId,
+        data: newOrder
+      }
+    );
 }

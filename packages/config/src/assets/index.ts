@@ -1,3 +1,1 @@
-
 export const ASSETS = ["bookTicker.BTC_USDC", "bookTicker.SOL_USDC", "bookTicker.ETH_USDC"]
-

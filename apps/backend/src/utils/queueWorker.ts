@@ -29,13 +29,19 @@ async function runLoop() {
       console.log("QUEUE WORKER : ",data);
       // if (!data) continue;
 
-      const id = data.data.id;// yahan pe data.data.id aaega after updation of response schema 
-      if( !id){
-        throw new CustomError(500, "Recieved Null Id from engine")
+      if( !data){
+        continue;
       }
+
+      const id = data.data.id;// yahan pe data.data.id aaega after updation of response schema 
+      if( !id)
+        continue;
+
       if (idPromseMap.has(id)) {
         idPromseMap.get(id)!(data);
         idPromseMap.delete(id);
+      }else{
+        continue;
       }
     } catch (error) {
       console.log(error);

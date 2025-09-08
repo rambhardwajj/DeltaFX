@@ -14,7 +14,6 @@ import { prisma } from "@repo/db";
 const authRedisProducer = createClient({
   url: config.REDIS_URL,
 });
-
 async function connectAuthRedisProducer() {
   authRedisProducer.connect();
 }
@@ -50,27 +49,32 @@ export const singin = asyncHandler(async (req, res) => {
       outro: "Need help? Just reply to this email.",
     },
   };
+  console.log("hery")
+    console.log(emailBody.body.action.button.link)
+
 
   var html = mailGenerator.generate(emailBody);
   var text = mailGenerator.generatePlaintext(emailBody);
 
-  const transporter = nodemailer.createTransport({
-    host: "sandbox.smtp.mailtrap.io",
-    port: 2525,
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: "b87c4f2d58f263",
-      pass: "a01ba65a50628f",
-    },
-  });
+  // const transporter = nodemailer.createTransport({
+  //   host: "sandbox.smtp.mailtrap.io",
+  //   port: 2525,
+  //   secure: false, // true for 465, false for other ports
+  //   auth: {
+  //     user: "b87c4f2d58f263",
+  //     pass: "a01ba65a50628f",
+  //   },
+  // });
 
-  const info = await transporter.sendMail({
-    from: '"Maddison Foo Koch" <maddison53@ethereal.email>',
-    to: email,
-    subject: "Hello ✔",
-    text: text, // plain‑text body
-    html: html, // HTML body
-  });
+
+  // const info = await transporter.sendMail({
+  //   from: '"Maddison Foo Koch" <maddison53@ethereal.email>',
+  //   to: email,
+  //   subject: "Hello ✔",
+  //   text: text, // plain‑text body
+  //   html: html, // HTML body
+  // });
+
 
   res.status(200).json({ message: "email sent to the user" });
 });

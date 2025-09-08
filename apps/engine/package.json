@@ -14,8 +14,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "redis": "^5.8.2",
+    "@datastructures-js/priority-queue": "^6.3.4",
+    "@repo/config": "workspace:*",
     "@repo/db": "workspace:*",
-    "@repo/config": "workspace:*"
+    "redis": "^5.8.2"
   }
 }

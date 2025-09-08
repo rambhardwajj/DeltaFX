@@ -6,6 +6,19 @@ import { redisProducer } from "../config/redisProducer";
 import { CustomError } from "../utils/CustomError";
 import { waitForId } from "../utils/queueWorker";
 
+const assetMap: Record<string, string> = {
+  BTC: "bookTicker.BTC_USDC",
+  ETH: "bookTicker.ETH_USDC",
+  SOL: "bookTicker.SOL_USDC",
+};
+
+function getStreamKey(asset: string): string {
+  if (!assetMap[asset]) {
+    throw new CustomError(400, "Unsupported asset");
+  }
+  return assetMap[asset];
+}
+
 export const createOrder = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   if (!userId) throw new CustomError(404, "invalid userId please login again ");
@@ -13,28 +26,32 @@ export const createOrder = asyncHandler(async (req, res) => {
 
   const { asset, type, margin, leverage, slippage } = req.body;
   const orderId = uuidv4();
+  
+  if (margin <= 0 || leverage <= 0 || leverage > 100) {
+    throw new CustomError(400, "Invalid trading parameters");
+  }
+  if (slippage < 0 || slippage > 1000) {
+    throw new CustomError(400, "Invalid slippage");
+  }
+  if (!["BTC", "ETH", "SOL"].includes(asset)) {
+    throw new CustomError(400, "Unsupported asset");
+  }
+  
+  const streamAsset = getStreamKey(asset)
   const orderData = {
     orderId,
-    asset,
+    asset: streamAsset,
     type,
     margin,
     leverage,
     slippage,
   };
-
-if (margin <= 0 || leverage <= 0 || leverage > 100) {
-    throw new CustomError(400, "Invalid trading parameters");
-}
-if (slippage < 0 || slippage > 1000) { // Max 10%
-    throw new CustomError(400, "Invalid slippage");
-}
-if (!["BTC", "ETH", "SOL"].includes(asset)) { 
-    throw new CustomError(400, "Unsupported asset");
-}
+  
   const orderDataForEngine = {
     userId: userId,
     data: orderData,
   };
+
 
   console.log("createOrder for orderId -> " + orderId + " sent to engine");
 

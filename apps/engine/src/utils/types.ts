@@ -9,13 +9,13 @@ export interface UserI {
 }
 export interface OrderI{
   id: string, 
+  userId: string,
   asset: string,
   type: string,
   margin: number,
   leverage: number,
   slippage: number,
-  liquidationPrice: number,
-  quantity: number, 
-  exposedQuantity : number,
-
+  liquidationPrice?: number,
+  entryPrice: number,
+  status: string,
 }
