@@ -125,14 +125,15 @@ export const verify = asyncHandler(async (req, res) => {
           lastLoggedId : new Date(Date.now()),
         }
       })
-      console.log("res from db ", resFromDB)
+      // console.log("res from db ", resFromDB)
   
       if(!resFromDB){
         throw new CustomError(500, "Failed to add user to the database"); 
       }
       
     } catch (error) {
-      throw new CustomError(500, "Failed in creating user" )
+      res.status(500).json({message: "error in creating user"})
+      return;
     }
 
     let accessToken;
@@ -153,7 +154,7 @@ export const verify = asyncHandler(async (req, res) => {
       })
       .json({ message: "cookie set" });
   } catch (error) {
-    console.log(error);
+    res.status(500).json({success: false, message: 'Error in user creation'})
   }
 });
 
