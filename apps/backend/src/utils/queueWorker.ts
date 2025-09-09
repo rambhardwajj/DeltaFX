@@ -6,12 +6,19 @@ const idPromseMap = new Map<string, (value: any) => any>();
 let startLoop = false;
 let offset = "$";
 
+export type EngineResponse<T = any> = {
+  id: string;                 
+  success: boolean;           
+  status: number;
+  message?: string;           
+  data?: T;      
+}             
+
 async function runLoop() {
   while (idPromseMap.size > 0) {
     console.log("inSide runLoop");
     try {
-      const res = await redisConsumer.xRead(
-        {
+      const res = await redisConsumer.xRead({
           key: "return-stream",
           id: offset,
         },
@@ -42,7 +49,6 @@ async function runLoop() {
         
     } catch (error) {
       console.log(error);
-      // Clean up failed promises
       for (let [id, resolve] of idPromseMap.entries()) {
           resolve({ error: "Processing failed" });
       }
@@ -53,17 +59,17 @@ async function runLoop() {
   startLoop = false;
 }
 
-export const waitForId = async (id: string) => {
-  const newPromise = new Promise((resolve, reject) => {
+export const waitForId = async (id: string): Promise<EngineResponse> => {
+  const newPromise : Promise<EngineResponse> = new Promise((resolve, reject) => {
     if (idPromseMap.has(id)) {
-      reject(null);
+      reject(new CustomError(504, "No id found"));
       return;
     }
     
     idPromseMap.set(id, resolve);
     setTimeout(() => {
       idPromseMap.delete(id);
-      reject(null);
+      reject(new CustomError(504, "Engine did not respond in time"));
     }, 5000);
   });
 

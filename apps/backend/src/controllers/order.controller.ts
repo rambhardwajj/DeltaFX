@@ -27,7 +27,7 @@ export const createOrder = asyncHandler(async (req, res) => {
   const { asset, type, margin, leverage, slippage } = req.body;
   const orderId = uuidv4();
 
-  if (margin <= 0 || leverage <= 0 || leverage > 100) {
+  if (margin <= 0 || leverage <= 0 || leverage > 1001) {
     throw new CustomError(400, "Invalid trading parameters");
   }
   if (slippage < 0 || slippage > 1000) {
@@ -64,10 +64,13 @@ export const createOrder = asyncHandler(async (req, res) => {
   try {
     const response = await waitForId(orderId);
     console.log("response from QueueWorker -> ", response);
-
-    
+    if(response.success){
+      res.status(200).json(new ApiResponse(200, "Order created Successfully", response.data))
+    }else{
+      throw new CustomError(500, "Engine Processing Error")
+    }
   } catch (error) {
-    throw new CustomError(500, "create order Failed due to server error");
+    throw new CustomError(500, "create order Failed due to engine error");
   }
 
   res
@@ -93,6 +96,9 @@ export const closeOrder = asyncHandler(async (req, res) => {
   try {
     const response = await waitForId(orderId);
     console.log("response from QueueWorker -> ", response);
+    if(response.success){
+      res.status(200).json(new ApiResponse(200, "Order closed successfully", response.data))
+    }
   } catch (error) {
     throw new CustomError(500, "close order failed due to  server error");
   }

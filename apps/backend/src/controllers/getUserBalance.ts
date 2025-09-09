@@ -52,7 +52,7 @@ export const getUserBalance = asyncHandler(async (req, res) => {
 
 
   } catch (error) {
-    throw new CustomError(500, "this is new error")
+    res.status(200).json({success: false, message:"Error in getting user balance"})
   }
 });
 
