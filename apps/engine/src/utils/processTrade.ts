@@ -1,20 +1,7 @@
-import { currPrices, users, user_balance, open_positions } from "../index";
+import { MaxPriorityQueue, MinPriorityQueue } from "@datastructures-js/priority-queue";
+import { currPrices, users, user_balance, open_positions, longOrdersHm, shortOrderHm } from "../index";
 import { publisherClient } from "../index";
-
-import {
-  MinPriorityQueue,
-  MaxPriorityQueue,
-} from "@datastructures-js/priority-queue";
-
-type liqOrder = {
-  orderId: string;
-  liqPrice: number;
-  userId: string;
-  asset: string;
-};
-
-const longOrdersHm = new Map<string, MinPriorityQueue<liqOrder>>();
-const shortOrderHm = new Map<string, MaxPriorityQueue<liqOrder>>();
+import type { liqOrder } from "./types";
 
 const addInHmPq = (
   orderType: string,
@@ -61,16 +48,16 @@ async function sendToReturnStream(
 
 function calculateLiquidationPrice(
   margin: number,
-  entryPrice: number,
+  currPriceOfStock: number,
   leverage: number,
   type: string
 ) {
   let liquidationPrice: number;
 
   if (type === "long") {
-    liquidationPrice = entryPrice - margin / leverage;
+    liquidationPrice = currPriceOfStock - margin / leverage;
   } else {
-    liquidationPrice = entryPrice + margin / leverage;
+    liquidationPrice = currPriceOfStock + margin / leverage;
   }
 
   return liquidationPrice;
@@ -100,7 +87,9 @@ export async function processTradeCreation({
     return;
   }
 
-  const assetPrice = currPrices[asset]?.prices;
+  console.log("assetPrice", asset);
+  console.log("currPrices", currPrices[asset]);
+  const assetPrice = currPrices[asset]?.price;
   if (!assetPrice) {
     await sendToReturnStream("return-stream", false, "Price not found", 404, {
       id: orderId,
@@ -134,16 +123,27 @@ export async function processTradeCreation({
     .get(userId)
     ?.balance.set("USD", { balance: bal - requiredMargin, decimal: 2 });
 
+  // this will override in case of anaother order formt the same asset
   users.get(userId)?.balance.set(asset, {
     balance: quantity,
     decimal: 2,
   });
 
   let liquidationPrice;
-  if (type === "long" && leverage === 1) {
+  if (type === "long" || leverage === 1) {
     autoLiquidate = false;
-  } else 
-    autoLiquidate = true;
+  } else autoLiquidate = true;
+
+  if (autoLiquidate) {
+    liquidationPrice = calculateLiquidationPrice(
+      margin,
+      assetPrice,
+      leverage,
+      type
+    );
+
+    addInHmPq(type, userId, orderId, liquidationPrice, asset);
+  }
 
   const newOrder = {
     id: orderId,
@@ -157,27 +157,17 @@ export async function processTradeCreation({
     entryPrice: assetPrice,
     status: "OPEN",
   };
-
-  if (autoLiquidate) {
-    liquidationPrice = calculateLiquidationPrice(
-      margin,
-      assetPrice,
-      leverage,
-      type
-    );
-
-    addInHmPq(type, userId, orderId, liquidationPrice, asset);
-  }
+  
   open_positions.set(orderId, newOrder);
 
   await sendToReturnStream(
-      "return-stream",
-      true,
-      "Insufficient balance",
-      200,
-      {
-        id: orderId,
-        data: newOrder
-      }
-    );
+    "return-stream",
+    true,
+    "Order created successfully ",
+    200,
+    {
+      id: orderId,
+      data: newOrder,
+    }
+  );
 }

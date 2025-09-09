@@ -19,3 +19,10 @@ export interface OrderI{
   entryPrice: number,
   status: string,
 }
+
+export type liqOrder = {
+  orderId: string;
+  liqPrice: number;
+  userId: string;
+  asset: string;
+};

@@ -29,20 +29,17 @@ async function runLoop() {
       console.log("QUEUE WORKER : ",data);
       // if (!data) continue;
 
-      if( !data){
-        continue;
-      }
+      if( !data) continue;
 
-      const id = data.data.id;// yahan pe data.data.id aaega after updation of response schema 
-      if( !id)
-        continue;
+      const id = data.data.id;  // yahan pe data.data.id aaega after updation of response schema 
+      if( !id) continue;
 
       if (idPromseMap.has(id)) {
         idPromseMap.get(id)!(data);
         idPromseMap.delete(id);
-      }else{
+      }else
         continue;
-      }
+        
     } catch (error) {
       console.log(error);
       // Clean up failed promises

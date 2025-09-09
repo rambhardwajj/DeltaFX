@@ -26,7 +26,7 @@ export const createOrder = asyncHandler(async (req, res) => {
 
   const { asset, type, margin, leverage, slippage } = req.body;
   const orderId = uuidv4();
-  
+
   if (margin <= 0 || leverage <= 0 || leverage > 100) {
     throw new CustomError(400, "Invalid trading parameters");
   }
@@ -36,8 +36,8 @@ export const createOrder = asyncHandler(async (req, res) => {
   if (!["BTC", "ETH", "SOL"].includes(asset)) {
     throw new CustomError(400, "Unsupported asset");
   }
-  
-  const streamAsset = getStreamKey(asset)
+
+  const streamAsset = getStreamKey(asset);
   const orderData = {
     orderId,
     asset: streamAsset,
@@ -46,12 +46,11 @@ export const createOrder = asyncHandler(async (req, res) => {
     leverage,
     slippage,
   };
-  
+
   const orderDataForEngine = {
     userId: userId,
     data: orderData,
   };
-
 
   console.log("createOrder for orderId -> " + orderId + " sent to engine");
 
@@ -65,6 +64,8 @@ export const createOrder = asyncHandler(async (req, res) => {
   try {
     const response = await waitForId(orderId);
     console.log("response from QueueWorker -> ", response);
+
+    
   } catch (error) {
     throw new CustomError(500, "create order Failed due to server error");
   }

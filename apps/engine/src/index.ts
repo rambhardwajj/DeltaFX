@@ -1,22 +1,26 @@
 import { createClient } from "redis";
 import { ASSETS, config } from "@repo/config";
 import { processTradeCreation } from "./utils/processTrade";
-import type { BalanceAmt, OrderI, UserI } from "./utils/types";
+import type { BalanceAmt, OrderI, UserI, liqOrder } from "./utils/types";
+import {
+  MinPriorityQueue,
+  MaxPriorityQueue,
+} from "@datastructures-js/priority-queue";
+import { closeOrder } from "./utils/closeOrder";
 
+const myAssets = ["BTC", "ETH", "SOL"]
 const subscriberClient = createClient({
   url: "redis://localhost:6379",
 });
 export const publisherClient = createClient({
   url: config.REDIS_URL,
 });
-
 subscriberClient.on("error", (err) => {
   console.error("Redis subscriber error:", err);
 });
 publisherClient.on("error", (err) => {
   console.error("Redis publisher error:", err);
 });
-
 async function connectRedis() {
   try {
     await subscriberClient.connect();
@@ -27,9 +31,6 @@ async function connectRedis() {
   }
 }
 connectRedis();
-subscriberClient.on("error", (err) => {
-  console.error(err);
-});
 
 export const currPrices = {
   ...Object.fromEntries(
@@ -38,7 +39,7 @@ export const currPrices = {
         asset,
         {
           offset: "$",
-          prices: 0,
+          price: 0,
           decimal: 2,
           timeStamp: Date.now(),
         },
@@ -49,6 +50,8 @@ export const currPrices = {
 export const users = new Map<string, UserI>();
 export const open_positions = new Map<string, OrderI>();
 export const user_balance = new Map<string, number>();
+export const shortOrderHm = new Map<string, MinPriorityQueue<liqOrder>>();
+export const longOrdersHm = new Map<string, MaxPriorityQueue<liqOrder>>();
 
 function returnResponseToStream(
   stream: string,
@@ -79,7 +82,7 @@ async function receiveStreamData(stream: string) {
     }
     // @ts-ignore
     const { streamName, data } = JSON.parse(
-          // @ts-ignore
+      // @ts-ignore
       responseFromStream[0].messages[0].message.data
     );
     console.log(streamName);
@@ -100,7 +103,6 @@ async function receiveStreamData(stream: string) {
 
       if (
         !data.userId ||
-        !data.data.orderId ||
         !data.data.asset ||
         !data.data.type ||
         !data.data.margin ||
@@ -113,7 +115,7 @@ async function receiveStreamData(stream: string) {
           false,
           "order data missing",
           404,
-          null
+          { id: data.data.orderId }
         );
         continue;
       }
@@ -125,7 +127,7 @@ async function receiveStreamData(stream: string) {
         type: data.data.type,
         margin: data.data.margin,
         leverage: data.data.leverage,
-        slippage: data.data.slippage
+        slippage: data.data.slippage,
       });
 
       console.log("orderOpen data sent to Return Queue ");
@@ -133,9 +135,44 @@ async function receiveStreamData(stream: string) {
 
     if (streamName === "trade-close") {
       console.log();
-      console.log(data);
 
       const closeOrderData = { id: data.orderId };
+      const orderData = open_positions.get(data.orderId);
+      if (!orderData) {
+        returnResponseToStream(
+          "return-stream",
+          false,
+          "order data doesnot exists",
+          500,
+          closeOrderData
+        );
+        continue;
+      }
+      console.log(orderData);
+      const currPriceOfAsset = currPrices[orderData!.asset]?.price;
+      console.log(orderData?.asset)
+      console.log("currPrice of asset", currPriceOfAsset)
+
+      if (!currPriceOfAsset) {
+        returnResponseToStream(
+          "return-stream",
+          false,
+          "current Price not found",
+          500,
+          closeOrderData
+        );
+        continue;
+      }
+
+      closeOrder(
+        orderData!.userId,
+        orderData!.id,
+        orderData!.asset,
+        currPriceOfAsset!,
+        orderData!.type,
+        orderData!.leverage,
+        orderData!.entryPrice
+      );
 
       returnResponseToStream(
         "return-stream",
@@ -144,12 +181,6 @@ async function receiveStreamData(stream: string) {
         200,
         closeOrderData
       );
-
-      // publisherClient.xAdd("return-stream", "*", {
-      //   data: JSON.stringify({
-      //     id: data.orderId,
-      //   }),
-      // });
 
       console.log("orderClose data sent to Return Queue");
     }
@@ -235,6 +266,7 @@ async function receiveStreamData(stream: string) {
         );
       }
     }
+
     if (streamName === "get-usd-balance") {
       if (!data.userId || !users.has(data.userId)) {
         returnResponseToStream(
