@@ -3,6 +3,7 @@ import { open_positions } from "..";
 import { user_balance } from "..";
 import { currPrices } from "..";
 import { users } from "..";
+import { shortOrderHm, longOrdersHm } from "..";
 
 async function sendToReturnStream(
   stream: string,
@@ -28,44 +29,88 @@ export async function closeOrder(
   currPriceOfAsset: number,
   type: string,
   leverage: number,
-  entryPrice: number
+  entryPrice: number,
+  margin: number,
+  quantity: number
 ) {
-  const assetQuantity = users.get(userId)?.balance.get(asset)?.balance;
+  let assetQuantity;
+  if( type === "long")
+    assetQuantity = users.get(userId)?.balance.get(asset+"_long")?.balance;
+  else {
+    assetQuantity = users.get(userId)?.balance.get(asset+"_short")?.balance;
+  }
   if (!assetQuantity) {
     await sendToReturnStream(
-        "return-stream",
-        false,
-        "Asset Quantity is null ",
-        500,
-        {
-            id: orderId,
-        }
-    )
+      "return-stream",
+      false,
+      "Asset Quantity is null ",
+      500,
+      {
+        id: orderId,
+      }
+    );
     return;
   }
   let profit = 0;
+  let pq;
 
   if (type === "long") {
     profit = (currPriceOfAsset - entryPrice) * assetQuantity * leverage;
+    pq = longOrdersHm.get(asset);
   } else if (type === "short") {
     profit = (entryPrice - currPriceOfAsset) * assetQuantity * leverage;
+    pq = shortOrderHm.get(asset);
   } else {
     await sendToReturnStream(
-        "return-stream",
-        false,
-        "Order type does not exists ",
-        500,
-        {
-            id: orderId,
-        }
-    )
+      "return-stream",
+      false,
+      "Order type does not exists ",
+      404,
+      {
+        id: orderId,
+      }
+    );
+  }
+
+  if (pq) {
+    console.log("liquidating order-> ", orderId);
+    pq.remove((o) => o.orderId === orderId);
   }
 
   const userBalance = users.get(userId)?.balance.get("USD")?.balance || 0;
-  users.get(userId)?.balance.set("USD", { balance: userBalance + profit, decimal: 2 });
-  users.get(userId)?.balance.set(asset, { balance: 0 , decimal : 2});
+  users.get(userId)?.balance.set("USD", {
+    balance: userBalance + profit + margin,
+    type: "usd",
+  });
 
-  open_positions.delete(orderId)
+  if (type === "long") {
+    if (
+      users.get(userId)?.balance.get(asset+"_long") &&
+      open_positions.get(orderId) &&
+      users.get(userId)?.balance.get(asset+"_long")!.type === "long"
+    ) {
+      let orderQuantity = open_positions.get(orderId)?.quantity!;
+      let currQuantity = users.get(userId)?.balance.get(asset+"_long")?.balance!;
+      users.get(userId)?.balance.set(asset+"_long", {
+        balance: currQuantity - orderQuantity,
+        type: "long",
+      });
+    }
+  } else if (
+    type === "short" &&
+    users.get(userId)?.balance.get(asset+"_short") &&
+    open_positions.get(orderId) &&
+    users.get(userId)?.balance.get(asset+"_short")!.type === "short"
+  ) {
+    let orderQuantity = open_positions.get(orderId)?.quantity!;
+    let currQuantity = users.get(userId)?.balance.get(asset+"_short")?.balance!;
+    users.get(userId)?.balance.set(asset+"_short", {
+      balance: currQuantity - orderQuantity,
+      type: "short",
+    });
+  }
+
+  open_positions.delete(orderId);
 
   user_balance.set(userId, userBalance + profit);
 
@@ -76,17 +121,17 @@ export async function closeOrder(
     200,
     {
       id: orderId,
-      data:{
+      data: {
         id: orderId,
-        openPrice : entryPrice,
+        openPrice: entryPrice,
         closePrice: currPriceOfAsset,
         leverage: leverage,
-        pnl : profit,
+        pnl: profit,
         assetId: asset,
         liquidated: true,
         userId: userId,
-        createdAt: Date.now()
-      } ,
+        quantity,
+      },
     }
   );
 }
