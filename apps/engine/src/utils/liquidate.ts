@@ -9,6 +9,7 @@ import {
 import { closeOrder } from "./closeOrder";
 
 export function liquidateOrder(asset: string) {
+  console.log("Inside Liquidating order")
   const currPriceOfAsset = currPrices[asset]?.price;
   if (!currPriceOfAsset) return;
 
@@ -30,7 +31,9 @@ export function liquidateOrder(asset: string) {
       currPriceOfAsset,
       order.type,
       order.leverage,
-      order.entryPrice
+      order.entryPrice,
+      order.margin,
+      order.quantity
     );
   }
 
@@ -52,7 +55,9 @@ export function liquidateOrder(asset: string) {
       currPriceOfAsset,
       order.type,
       order.leverage,
-      order.entryPrice
+      order.entryPrice,
+      order.margin,
+      order.quantity
     );
   }
 }
