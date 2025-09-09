@@ -7,8 +7,22 @@ import {
   MaxPriorityQueue,
 } from "@datastructures-js/priority-queue";
 import { closeOrder } from "./utils/closeOrder";
+import { liquidateOrder } from "./utils/liquidate";
+import {
+  usersToJSON,
+  JSONToUsers,
+  openPositionsToJSON,
+  userBalanceToJSON,
+  shortOrderHmToJSON,
+  longOrderHmToJSON,
+  JSONToOpenPositions,
+  jsonToUserBalance,
+  JSONToShortOrderHm,
+  JSONToLongOrderHm,
+} from "./utils/snapShotUtils";
+import fs from "fs";
 
-const myAssets = ["BTC", "ETH", "SOL"]
+const myAssets = ["BTC", "ETH", "SOL"];
 const subscriberClient = createClient({
   url: "redis://localhost:6379",
 });
@@ -47,11 +61,31 @@ export const currPrices = {
     })
   ),
 };
-export const users = new Map<string, UserI>();
-export const open_positions = new Map<string, OrderI>();
-export const user_balance = new Map<string, number>();
-export const shortOrderHm = new Map<string, MinPriorityQueue<liqOrder>>();
-export const longOrdersHm = new Map<string, MaxPriorityQueue<liqOrder>>();
+
+export let users = new Map<string, UserI>();
+export let open_positions = new Map<string, OrderI>();
+export let user_balance = new Map<string, number>();
+export let shortOrderHm = new Map<string, MinPriorityQueue<liqOrder>>();
+export let longOrdersHm = new Map<string, MaxPriorityQueue<liqOrder>>();
+
+let usersDatafromSS= fs.readFileSync('data/users.json', 'utf8');
+let openPositionFromSS = fs.readFileSync('data/open_orders.json', 'utf8');
+let userBalanceFromSS = fs.readFileSync('data/user_balance.json', 'utf8');
+let shortOrderFromSS = fs.readFileSync('data/shortorder_hm.json', 'utf8');
+let longOrderFromSS = fs.readFileSync('data/longorder_hm.json', 'utf8');
+
+users = JSONToUsers(usersDatafromSS)
+open_positions = JSONToOpenPositions(openPositionFromSS)
+user_balance = jsonToUserBalance(userBalanceFromSS)
+shortOrderHm = JSONToShortOrderHm(shortOrderFromSS)
+longOrdersHm = JSONToLongOrderHm(longOrderFromSS)
+
+console.log(users)
+console.log(open_positions)
+console.log(user_balance)
+console.log(shortOrderHm)
+console.log(longOrdersHm)
+
 
 function returnResponseToStream(
   stream: string,
@@ -87,20 +121,36 @@ async function receiveStreamData(stream: string) {
     );
     console.log(streamName);
 
+    // CURR PRICES
     if (streamName === "curr-prices") {
       ASSETS.forEach((asset) => {
         currPrices[asset] = data[asset];
+        // call auto liquidate function
+        liquidateOrder(asset);
       });
       console.log();
-      // data is coming with 10^2
       console.log(data);
     }
-    // ------------------------------------------------
+    // TRADE CREATE
     if (streamName === "trade-create") {
       console.log();
       console.log("Incoming data", data);
       console.log("Orders Before: ", Object.fromEntries(open_positions));
 
+      if (
+        !["long", "short"].includes(data.data.type) ||
+        data.data.leverage < 1
+      ) {
+        console.log("some order data not foung");
+        returnResponseToStream(
+          "return-stream",
+          false,
+          "Either leverage <1 or order type is invalid",
+          404,
+          { id: data.data.orderId }
+        );
+        continue;
+      }
       if (
         !data.userId ||
         !data.data.asset ||
@@ -132,7 +182,7 @@ async function receiveStreamData(stream: string) {
 
       console.log("orderOpen data sent to Return Queue ");
     }
-
+    // TRADE CLOSE
     if (streamName === "trade-close") {
       console.log();
 
@@ -150,8 +200,8 @@ async function receiveStreamData(stream: string) {
       }
       console.log(orderData);
       const currPriceOfAsset = currPrices[orderData!.asset]?.price;
-      console.log(orderData?.asset)
-      console.log("currPrice of asset", currPriceOfAsset)
+      console.log(orderData?.asset);
+      console.log("currPrice of asset", currPriceOfAsset);
 
       if (!currPriceOfAsset) {
         returnResponseToStream(
@@ -171,7 +221,9 @@ async function receiveStreamData(stream: string) {
         currPriceOfAsset!,
         orderData!.type,
         orderData!.leverage,
-        orderData!.entryPrice
+        orderData!.entryPrice,
+        orderData.margin,
+        orderData.quantity
       );
 
       returnResponseToStream(
@@ -184,7 +236,7 @@ async function receiveStreamData(stream: string) {
 
       console.log("orderClose data sent to Return Queue");
     }
-    // ------------------------------------------------
+    // CREATE USER
     if (streamName === "create-user") {
       if (!data.userId || !data.data.email) {
         returnResponseToStream(
@@ -199,9 +251,9 @@ async function receiveStreamData(stream: string) {
 
       const balanceMap = new Map<string, BalanceAmt>();
 
-      // balance with 10^2
-      balanceMap.set("USD", { balance: 500000, decimal: 2 });
+      balanceMap.set("USD", { balance: 500000, type: "usd" });
       user_balance.set(data.userId, 500000);
+
       const userDataToStore = {
         id: data.userId,
         email: data.data.email,
@@ -224,10 +276,12 @@ async function receiveStreamData(stream: string) {
         200,
         userReturn
       );
-      console.log("users map- >  ", users);
-    }
+      // console.log("users map- >  ", users);
 
-    // ------------------------------------------------
+      const JsonUser = usersToJSON(users);
+      // console.log("Here are json users-> ", JsonUser);
+    }
+    // GET USER BALANCE
     if (streamName === "get-user-balance") {
       if (!data.userId || !users.has(data.userId)) {
         console.log("get-user-bal: Either Id or user doesnot exits");
@@ -266,7 +320,7 @@ async function receiveStreamData(stream: string) {
         );
       }
     }
-
+    // GET USD BALANCE
     if (streamName === "get-usd-balance") {
       if (!data.userId || !users.has(data.userId)) {
         returnResponseToStream(
@@ -301,6 +355,55 @@ async function receiveStreamData(stream: string) {
     }
   }
 }
+
+setInterval(() => {
+  const usersToDump = usersToJSON(users);
+  fs.writeFile("data/users.json", usersToDump, (err) => {
+    if (err) {
+      console.error("Error writing to file:", err);
+      return;
+    }
+    console.log("users File written successfully!");
+  });
+
+  const openPositionsToDump = openPositionsToJSON(open_positions);
+  fs.writeFile("data/open_orders.json", openPositionsToDump, (err) => {
+    if (err) {
+      console.log("Error in writting in open positions file", err);
+      return;
+    }
+    console.log("Open positions written in file.");
+  });
+
+  const userbalanceToDump = userBalanceToJSON(user_balance);
+  fs.writeFile("data/user_balance.json", userbalanceToDump, (err) => {
+    if (err) {
+      console.log("Error in writting in open positions file", err);
+      return;
+    }
+    console.log("User balance written in file.");
+  });
+
+  const shortOrdreHMtoJson = shortOrderHmToJSON(shortOrderHm);
+  fs.writeFile("data/shortorder_hm.json", shortOrdreHMtoJson, (err) => {
+    if (err) {
+      console.log("Error in writting in short order file", err);
+      return;
+    }
+    console.log("Short order written in file.");
+  });
+
+  const longOrderHmMToJSON = longOrderHmToJSON(longOrdersHm);
+  fs.writeFile("data/longorder_hm.json", shortOrdreHMtoJson, (err) => {
+    if (err) {
+      console.log("Error in writting in short order file", err);
+      return;
+    }
+    console.log("Short order written in file.");
+  });
+
+}, 10000);
+
 receiveStreamData("stream");
 
 // Approach 1 - Only getting prices from the queue when i hit the latest order
