@@ -10,7 +10,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(
   cors({
-    origin: true, // Reflect request origin
+    origin: true, 
     credentials: true,
   })
 );

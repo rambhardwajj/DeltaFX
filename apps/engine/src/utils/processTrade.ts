@@ -2,8 +2,10 @@ import {
   MaxPriorityQueue,
   MinPriorityQueue,
 } from "@datastructures-js/priority-queue";
+
+import { currPrices} from "../index"
+
 import {
-  currPrices,
   users,
   user_balance,
   open_positions,
@@ -65,6 +67,7 @@ function calculateLiquidationPrice(
   let liquidationPrice: number;
 
   if (type === "long") {
+
     liquidationPrice = currPriceOfStock - margin / leverage;
   } else {
     liquidationPrice = currPriceOfStock + margin / leverage;
@@ -100,6 +103,7 @@ export async function processTradeCreation({
   console.log("assetPrice", asset);
   console.log("currPrices", currPrices[asset]);
   const assetPrice = currPrices[asset]?.price;
+  const assetBuyPrice = currPrices[asset]?.buyPrice;
   if (!assetPrice || assetPrice === 0 ) {
     await sendToReturnStream("return-stream", false, "Price not found", 404, {
       id: orderId,

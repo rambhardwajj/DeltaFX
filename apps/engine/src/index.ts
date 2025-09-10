@@ -56,6 +56,7 @@ export const currPrices = {
         {
           offset: "$",
           price: 0,
+          buyPrice:0,
           decimal: 2,
           timeStamp: Date.now(),
         },
@@ -70,12 +71,11 @@ export let user_balance = new Map<string, number>();
 export let shortOrderHm = new Map<string, MinPriorityQueue<liqOrder>>();
 export let longOrdersHm = new Map<string, MaxPriorityQueue<liqOrder>>();
 
+
 function safeReadJsonFile(filePath: string, defaultContent: string): string {
   try {
-    // Check if file exists
     if (!fs.existsSync(filePath)) {
       console.log(`File ${filePath} doesn't exist, creating with default content`);
-      // Ensure directory exists
       const dir = path.dirname(filePath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -157,20 +157,19 @@ try {
   longOrdersHm = JSONToLongOrderHm(longOrderFromSS);
   console.log(`✓ Loaded ${longOrdersHm.size} long order queues`);
   
-  console.log("✅ All data loaded successfully!");
+  console.log("All data loaded successfully!");
   
 } catch (error) {
-  console.error("❌ Error converting JSON to data structures:", error);
-  console.log("🔄 Initializing with empty data structures as fallback");
+  console.error("Error converting JSON to data structures:", error);
+  console.log("Initializing with empty data structures as fallback");
   
-  // Initialize with empty structures as fallback
   users = new Map<string, UserI>();
   open_positions = new Map<string, OrderI>();
   user_balance = new Map<string, number>();
   shortOrderHm = new Map<string, MinPriorityQueue<liqOrder>>();
   longOrdersHm = new Map<string, MaxPriorityQueue<liqOrder>>();
   
-  console.log("✅ Fallback initialization complete");
+  console.log("Fallback initialization complete");
 }
 console.log(users)
 console.log(open_positions)
@@ -444,6 +443,28 @@ async function receiveStreamData(stream: string) {
           );
         }
       }
+    }
+
+    if( streamName === "get-user"){
+      if( !data.userId || !users.has(data.userId)){
+        returnResponseToStream(
+          "return-stream",
+          false,
+          "Cannot get users as userId is null",
+          404,
+          null
+        );
+        continue;
+      }
+
+      const user = users.get(data.userId);
+      returnResponseToStream(
+        "return-stream",
+        true,
+        "returned the user",
+        200,
+        user
+      )
     }
   }
 }

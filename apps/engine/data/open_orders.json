@@ -1,22 +1,6 @@
 {
   "open_positions": [
     [
-      "beea9130-5d22-4e1b-a4bb-480b3a02a73a",
-      {
-        "id": "beea9130-5d22-4e1b-a4bb-480b3a02a73a",
-        "userId": "d3c87174-0841-4368-9c08-01d00ec7628a",
-        "asset": "bookTicker.BTC_USDC",
-        "type": "short",
-        "margin": 100000,
-        "leverage": 1000,
-        "slippage": 100,
-        "liquidationPrice": 11237470,
-        "entryPrice": 11237370,
-        "status": "OPEN",
-        "quantity": 0.008898879364121676
-      }
-    ],
-    [
       "0e99b98e-44a3-4cdf-8342-6650bc6b1056",
       {
         "id": "0e99b98e-44a3-4cdf-8342-6650bc6b1056",

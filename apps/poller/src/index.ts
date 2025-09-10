@@ -15,6 +15,7 @@ connectRedis();
 interface assetPriceI {
   [asset: string]: {
     price: number;
+    buyPrice: number;
     decimal: number;
     timeStamp: number;
   };
@@ -28,6 +29,7 @@ const currentPrices: assetPriceI = {
           timeStamp: Date.now() * 1000,
           decimal: DECIMAL_PRECISION,
           price: 0,
+          buyPrice: 0
         },
       ];
     })
@@ -61,8 +63,10 @@ const main = async () => {
 
   ws.on("message", async (msg) => {
     const response = JSON.parse(msg.toString());
+    const onePercent = (response.data.b * (10**DECIMAL_PRECISION)) * 0.01;
     currentPrices[response.stream] = {
-      price: response.data.a * (10 ** DECIMAL_PRECISION),
+      price:parseInt((Number(response.data.a) * (10 ** DECIMAL_PRECISION)).toFixed(0)),
+      buyPrice: parseInt(((Number(response.data.a) + (0.01 * Number(response.data.a))) * (10 ** DECIMAL_PRECISION)).toFixed(0)),
       decimal: DECIMAL_PRECISION,
       timeStamp: response.data.T,
     };

@@ -86,11 +86,8 @@ export const verify = asyncHandler(async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, config.ACCESS_TOKEN_SECRET);
-
-    if(!decoded){
-      throw new CustomError(400, "invalid token")
-    }
-
+    if(!decoded) throw new CustomError(400, "invalid token")
+    
     const jwtData = decoded
 
     console.log("jwt Payload:", jwtData);
@@ -168,3 +165,4 @@ export const logout = asyncHandler(async (req , res ) =>{
   res.clearCookie("accessToken");
   res.status(200).json(new ApiResponse(200, "logged Out successfully", userId))
 })
+

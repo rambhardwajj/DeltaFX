@@ -1,11 +1,13 @@
 import {
   currPrices,
+} from "../index";
+import {
   users,
   user_balance,
   open_positions,
   longOrdersHm,
-  shortOrderHm,
-} from "../index";
+  shortOrderHm,} from "../index"
+
 import { closeOrder } from "./closeOrder";
 
 export function liquidateOrder(asset: string) {

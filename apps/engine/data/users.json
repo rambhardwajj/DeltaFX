@@ -25,14 +25,14 @@
           [
             "USD",
             {
-              "balance": 300000,
+              "balance": -360142.27528327354,
               "type": "usd"
             }
           ],
           [
             "bookTicker.BTC_USDC_short",
             {
-              "balance": 0.008898879364121676,
+              "balance": 0,
               "type": "short"
             }
           ],
@@ -41,6 +41,93 @@
             {
               "balance": 0.008898879364121676,
               "type": "long"
+            }
+          ]
+        ]
+      }
+    ],
+    [
+      "647a1cc3-4da0-4d5c-a526-b3bcc486d80d",
+      {
+        "id": "647a1cc3-4da0-4d5c-a526-b3bcc486d80d",
+        "email": "fdsasdfasd@gmail.com",
+        "balance": [
+          [
+            "USD",
+            {
+              "balance": 500000,
+              "type": "usd"
+            }
+          ]
+        ]
+      }
+    ],
+    [
+      "213ad0a9-289e-4da2-b91b-5f78e3d90d8a",
+      {
+        "id": "213ad0a9-289e-4da2-b91b-5f78e3d90d8a",
+        "email": "fdsafsdfasdfasd@gmail.com",
+        "balance": [
+          [
+            "USD",
+            {
+              "balance": 500000,
+              "type": "usd"
+            }
+          ]
+        ]
+      }
+    ],
+    [
+      "9fc50f28-cb84-4dde-9a92-ecd6f11ebcc3",
+      {
+        "id": "9fc50f28-cb84-4dde-9a92-ecd6f11ebcc3",
+        "email": "fdsafsdfasdfasd@gmail.com",
+        "balance": [
+          [
+            "USD",
+            {
+              "balance": 500000,
+              "type": "usd"
+            }
+          ]
+        ]
+      }
+    ],
+    [
+      "9683a3c2-11f3-47be-9ec3-ed6e0a642fbc",
+      {
+        "id": "9683a3c2-11f3-47be-9ec3-ed6e0a642fbc",
+        "email": "fdsafsdfasdfasd@gmail.com",
+        "balance": [
+          [
+            "USD",
+            {
+              "balance": 500000,
+              "type": "usd"
+            }
+          ],
+          [
+            "bookTicker.BTC_USDC_long",
+            {
+              "balance": 0,
+              "type": "long"
+            }
+          ]
+        ]
+      }
+    ],
+    [
+      "f554a3e9-2610-41e7-8576-76b0f1932dd8",
+      {
+        "id": "f554a3e9-2610-41e7-8576-76b0f1932dd8",
+        "email": "fffsafasdf@gmail.com",
+        "balance": [
+          [
+            "USD",
+            {
+              "balance": 500000,
+              "type": "usd"
             }
           ]
         ]

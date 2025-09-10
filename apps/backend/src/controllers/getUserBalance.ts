@@ -86,3 +86,26 @@ export const getUserUsdBalance = asyncHandler(async (req, res) =>{
 
   res.status(200).json(new ApiResponse(200, "usd balance returned to the usr",result ))
 })
+
+export const getUser = asyncHandler(async (req, res) =>{
+  const userId  = req.user.id;
+  const dataToSend = {
+    userId: userId
+  }
+  balanceRedisProducer.xAdd("stream", "*", {
+    data: JSON.stringify({
+      streamName: "get-user",
+      data: dataToSend 
+    })
+  })
+
+  let returnData = null
+  try {
+    const response = await waitForId(userId);
+    returnData= response
+  } catch (error) {
+    throw new CustomError(500, "engine error in geting user")
+  }
+
+  res.status(200).json(new ApiResponse(200, "user data fetched", returnData))
+})
