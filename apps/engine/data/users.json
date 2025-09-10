@@ -1,37 +1,46 @@
 {
   "users": [
     [
-      "95da198d-da13-4446-8afb-227f6a3dc91e",
+      "c1c30d42-0025-4bd0-a268-f6e88284eabe",
       {
-        "id": "95da198d-da13-4446-8afb-227f6a3dc91e",
-        "email": "ffd@gmail.com",
+        "id": "c1c30d42-0025-4bd0-a268-f6e88284eabe",
+        "email": "fdsasdfasd@gmail.com",
         "balance": [
           [
             "USD",
             {
-              "balance": 277799.99686021986,
+              "balance": 500000,
               "type": "usd"
             }
-          ],
+          ]
+        ]
+      }
+    ],
+    [
+      "d3c87174-0841-4368-9c08-01d00ec7628a",
+      {
+        "id": "d3c87174-0841-4368-9c08-01d00ec7628a",
+        "email": "fdsasdfasd@gmail.com",
+        "balance": [
           [
-            "bookTicker.SOL_USDC_long",
+            "USD",
             {
-              "balance": 4.624919063916382,
-              "type": "long"
-            }
-          ],
-          [
-            "bookTicker.SOL_USDC_short",
-            {
-              "balance": 0,
-              "type": "short"
+              "balance": 300000,
+              "type": "usd"
             }
           ],
           [
             "bookTicker.BTC_USDC_short",
             {
-              "balance": 0.00896680846179781,
+              "balance": 0.008898879364121676,
               "type": "short"
+            }
+          ],
+          [
+            "bookTicker.BTC_USDC_long",
+            {
+              "balance": 0.008898879364121676,
+              "type": "long"
             }
           ]
         ]

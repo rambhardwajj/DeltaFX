@@ -76,3 +76,7 @@ export interface ShortOrderHmJSON {
 export interface UserBalanceJSON {
   user_balance: [string, number][] // Array of key-value pairs
 }
+
+export interface LongOrderHmJSON {
+  longOrderHm: [string, LiqOrderJSON[]][]
+}

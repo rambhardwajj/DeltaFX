@@ -1,16 +1,12 @@
 {
   "shortOrderHm": [
     [
-      "bookTicker.SOL_USDC",
-      []
-    ],
-    [
       "bookTicker.BTC_USDC",
       [
         {
-          "orderId": "0d022664-d115-470d-912e-58d5e8298420",
-          "liqPrice": 11152340,
-          "userId": "95da198d-da13-4446-8afb-227f6a3dc91e",
+          "orderId": "beea9130-5d22-4e1b-a4bb-480b3a02a73a",
+          "liqPrice": 11237470,
+          "userId": "d3c87174-0841-4368-9c08-01d00ec7628a",
           "asset": "bookTicker.BTC_USDC"
         }
       ]
