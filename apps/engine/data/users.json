@@ -132,6 +132,38 @@
           ]
         ]
       }
+    ],
+    [
+      "55423604-e3a1-4728-9ed9-6af351f8467d",
+      {
+        "id": "55423604-e3a1-4728-9ed9-6af351f8467d",
+        "email": "ram@gmail.com",
+        "balance": [
+          [
+            "USD",
+            {
+              "balance": 500000,
+              "type": "usd"
+            }
+          ]
+        ]
+      }
+    ],
+    [
+      "1354fbf0-cd80-4e39-95aa-873c084df0c3",
+      {
+        "id": "1354fbf0-cd80-4e39-95aa-873c084df0c3",
+        "email": "ram@gmail.com",
+        "balance": [
+          [
+            "USD",
+            {
+              "balance": 500000,
+              "type": "usd"
+            }
+          ]
+        ]
+      }
     ]
   ]
 }

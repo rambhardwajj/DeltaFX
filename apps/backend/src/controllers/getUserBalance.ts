@@ -42,7 +42,7 @@ export const getUserBalance = asyncHandler(async (req, res) => {
         if( !workerResponse){
           throw new CustomError(500, "worker response is null")
         }
-        console.log(workerResponse)
+        // console.log(workerResponse)
 
       } catch (error) {
         throw new CustomError(404, "Error in getting balance from  ")
@@ -87,7 +87,7 @@ export const getUserUsdBalance = asyncHandler(async (req, res) =>{
   res.status(200).json(new ApiResponse(200, "usd balance returned to the usr",result ))
 })
 
-export const getUser = asyncHandler(async (req, res) =>{
+export const getUserOrders = asyncHandler(async (req, res) =>{
   const userId  = req.user.id;
   const dataToSend = {
     userId: userId

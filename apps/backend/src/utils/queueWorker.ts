@@ -48,7 +48,6 @@ async function runLoop() {
         continue;
         
     } catch (error) {
-      console.log(error);
       for (let [id, resolve] of idPromseMap.entries()) {
           resolve({ error: "Processing failed" });
       }

@@ -7,7 +7,6 @@ import { config } from "@repo/config";
 
 
 const isLoggedIn = (req:Request, res:Response, next: NextFunction ) =>{
-    console.log(req.cookies)
     const {accessToken} = req.cookies;
     if( !accessToken){
         throw new CustomError(400, "Middleware: No Access token in cookies, Unauthorised request")
@@ -15,7 +14,6 @@ const isLoggedIn = (req:Request, res:Response, next: NextFunction ) =>{
     try {
         const decoded = jwt.verify(accessToken, config.ACCESS_TOKEN_SECRET!)
         req.user = decoded as decodedUser ;
-        console.log(req.user)
         next()
     } catch (error) {
         throw new CustomError(

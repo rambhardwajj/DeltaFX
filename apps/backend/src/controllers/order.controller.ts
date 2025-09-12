@@ -22,7 +22,6 @@ function getStreamKey(asset: string): string {
 export const createOrder = asyncHandler(async (req, res) => {
   const userId = req.user.id;
   if (!userId) throw new CustomError(404, "invalid userId please login again ");
-  console.log("Create order route");
 
   const { asset, type, margin, leverage, slippage } = req.body;
   const orderId = uuidv4();
@@ -79,7 +78,6 @@ export const createOrder = asyncHandler(async (req, res) => {
 });
 
 export const closeOrder = asyncHandler(async (req, res) => {
-  console.log("close order route");
   const { orderId } = req.body;
   if (!uuidValidate(orderId)) {
     throw new CustomError(403, "Not a valid uuid");
