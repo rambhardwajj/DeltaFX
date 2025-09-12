@@ -1,0 +1,23 @@
+{
+  "name": "@repo/timescaledb",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@types/pg": "^8.15.5",
+    "pg": "^8.16.3",
+    "@repo/config": "workspace:*"
+  }
+}

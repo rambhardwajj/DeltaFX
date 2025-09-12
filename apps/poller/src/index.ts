@@ -29,7 +29,7 @@ const currentPrices: assetPriceI = {
           timeStamp: Date.now() * 1000,
           decimal: DECIMAL_PRECISION,
           price: 0,
-          buyPrice: 0
+          buyPrice: 0,
         },
       ];
     })
@@ -44,8 +44,8 @@ setInterval(() => {
     publisher.XADD("stream", "*", {
       data: JSON.stringify({
         streamName: "curr-prices",
-        data: currentPrices
-    }),
+        data: currentPrices,
+      }),
     });
   });
 }, 1000);
@@ -63,10 +63,16 @@ const main = async () => {
 
   ws.on("message", async (msg) => {
     const response = JSON.parse(msg.toString());
-    const onePercent = (response.data.b * (10**DECIMAL_PRECISION)) * 0.01;
     currentPrices[response.stream] = {
-      price:parseInt((Number(response.data.a) * (10 ** DECIMAL_PRECISION)).toFixed(0)),
-      buyPrice: parseInt(((Number(response.data.a) + (0.01 * Number(response.data.a))) * (10 ** DECIMAL_PRECISION)).toFixed(0)),
+      price: parseInt(
+        (Number(response.data.a) * 10 ** DECIMAL_PRECISION).toFixed(0)
+      ),
+      buyPrice: parseInt(
+        (
+          (Number(response.data.a) + 0.01 * Number(response.data.a)) *
+          10 ** DECIMAL_PRECISION
+        ).toFixed(0)
+      ),
       decimal: DECIMAL_PRECISION,
       timeStamp: response.data.T,
     };

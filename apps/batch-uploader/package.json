@@ -1,22 +1,21 @@
 {
-  "name": "websocket-be",
+  "name": "batch-uploader",
   "module": "index.ts",
   "type": "module",
   "private": true,
-
   "devDependencies": {
-    "@types/bun": "latest",
-    "@repo/typescript-config": "workspace:*"
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
   },
   "scripts": {
     "dev": "bun run --watch src/index.ts"
   },
-  "peerDependencies": {
-    "typescript": "^5",
-    "@repo/config": "workspace:*"
-  },
   "dependencies": {
-    "@types/ws": "^8.18.1",
+    "@repo/config": "workspace:*",
+    "@types/redis": "^4.0.11",
+    "@repo/timescaledb": "workspace:*",
     "redis": "^5.8.2",
     "ws": "^8.18.3"
   }
