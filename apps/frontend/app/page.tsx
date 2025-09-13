@@ -30,7 +30,7 @@ export default function Home() {
   const { user, logout } = useUser();
   // console.log(user);
   const [selectedInterval, setSelectedInterval] = useState("1minute");
-  const [selectedAsset, setSelectedAsset] = useState("BTC");
+  const [selectedAsset, setSelectedAsset] = useState("SOL");
   const [selectedLimit, setSelectedLimit] = useState(100);
   const [history, setHistory] = useState("OPEN");
   const [webSocketConnection, setWebSocketConnection] = useState(false);
@@ -241,7 +241,7 @@ export default function Home() {
         <div className="flex items-center gap-4">
           <div className="text-pri md:cursor-pointer bg-neutral-800  rounded-md items-center hover:opacity-95 flex  py-1 px-4">
             <span className="text-sm text-gray-400 mr-2">Balance:</span>
-            <span className="text-green-100 font-semibold">${balance}</span>
+            <span className="text-green-100 font-semibold">${Number(balance?.toFixed(2))}</span>
           </div>
           <button className="text-pri md:cursor-pointer bg-neutral-800  rounded-md items-center hover:opacity-95 flex  py-1 px-4">
             Deposit
@@ -472,7 +472,7 @@ export default function Home() {
                   </div>
 
                   {/* Slippage  */}
-                  <div className="space-y-2">
+                  <div className="space-y-2 hidden">
                     <label className="text-sm font-medium text-gray-300">
                       Slippage
                     </label>
