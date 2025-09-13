@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-interface Order {
+export interface Order {
   asset: string;
   entryPrice: number;
   id: string;

@@ -1,5 +1,5 @@
 "use client";
-import OrdersComponent from "@/components/OrdersComponent";
+import OrdersComponent, { Order } from "@/components/OrdersComponent";
 import TradingView from "@/components/TradingView";
 import { useUser } from "@/context/UserContext";
 import { api } from "@/utils/api";
@@ -44,7 +44,7 @@ export default function Home() {
 
   const [balance, setBalance] = useState<number | null>(null);
 
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   const currPricesWsRef = useRef<Record<string, Price>>(
     DBASSETS.reduce(
