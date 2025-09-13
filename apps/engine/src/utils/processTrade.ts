@@ -102,8 +102,8 @@ export async function processTradeCreation({
 
   console.log("assetPrice", asset);
   console.log("currPrices", currPrices[asset]);
-  const assetPrice = currPrices[asset]?.price;
-  const assetBuyPrice = currPrices[asset]?.buyPrice;
+  const assetPrice = (currPrices[asset]!.price)/100;
+  const assetBuyPrice = (currPrices[asset]!.buyPrice)/100;
   if (!assetPrice || assetPrice === 0 ) {
     await sendToReturnStream("return-stream", false, "Price not found", 404, {
       id: orderId,
@@ -129,8 +129,12 @@ export async function processTradeCreation({
 
   let autoLiquidate = false;
 
-  const quantity = margin / assetPrice;
+  const quantity = margin / assetBuyPrice;
   const exposure = quantity * leverage;
+
+  console.log( "margin ->>  ",margin)
+  console.log("assetPrice -->>", assetPrice)
+  console.log("quantity -->>", quantity)
 
   user_balance.set(userId, bal - requiredMargin);
   users

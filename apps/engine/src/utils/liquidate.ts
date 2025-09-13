@@ -11,7 +11,6 @@ import {
 import { closeOrder } from "./closeOrder";
 
 export function liquidateOrder(asset: string) {
-  console.log("Inside Liquidating order")
   const currPriceOfAsset = currPrices[asset]?.price;
   if (!currPriceOfAsset) return;
 
@@ -44,9 +43,11 @@ export function liquidateOrder(asset: string) {
     !shortOrderHm.get(asset)!.isEmpty() &&
     shortOrderHm.get(asset)!.front()!.liqPrice <= currPriceOfAsset
   ) {
+    console.log("liquidating order")
     const orderToLiquidate = shortOrderHm.get(asset)!.pop();
     if (!orderToLiquidate) break;
 
+    console.log(" here ")
     const order = open_positions.get(orderToLiquidate.orderId);
     if (!order) continue;
 

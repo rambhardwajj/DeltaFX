@@ -33,7 +33,7 @@ export const singin = asyncHandler(async (req, res) => {
     product: {
       // Appears in header & footer of e-mails
       name: "Delta FX",
-      link: "http://localhost:4001/verify",
+      link: "http://localhost:4000/verify",
     },
   });
 
@@ -43,7 +43,9 @@ export const singin = asyncHandler(async (req, res) => {
         email: email,
       },
     });
+    console.log(user);
     if (user) {
+      console.log("user is here", user)
       let accessToken;
       try {
         accessToken = jwt.sign(
@@ -64,8 +66,8 @@ export const singin = asyncHandler(async (req, res) => {
           maxAge: 7 * 24 * 60 * 60 * 1000,
         })
         .json({ message: "cookie set" });
+        return;
     }
-    return;
   } catch (error) {
     console.log("error in singin up", error);
   }
@@ -126,6 +128,7 @@ export const verify = asyncHandler(async (req, res) => {
     // @ts-ignore
     let userId = jwtData.id;
     if (!userId) {
+      console.log("new userId for - > " , email)
       userId = uuidv4();
     }
     const userData = { userId: userId, data: jwtData };

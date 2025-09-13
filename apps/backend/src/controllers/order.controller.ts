@@ -29,7 +29,7 @@ export const createOrder = asyncHandler(async (req, res) => {
   if (margin <= 0 || leverage <= 0 || leverage > 1001) {
     throw new CustomError(400, "Invalid trading parameters");
   }
-  if (slippage < 0 || slippage > 1000) {
+  if (slippage < 0 || slippage > 100) {
     throw new CustomError(400, "Invalid slippage");
   }
   if (!["BTC", "ETH", "SOL"].includes(asset)) {
@@ -53,7 +53,7 @@ export const createOrder = asyncHandler(async (req, res) => {
 
   console.log("createOrder for orderId -> " + orderId + " sent to engine");
 
-  redisProducer.xAdd("stream", "*", {
+  await redisProducer.xAdd("stream", "*", {
     data: JSON.stringify({
       streamName: "trade-create",
       data: orderDataForEngine,
@@ -64,7 +64,7 @@ export const createOrder = asyncHandler(async (req, res) => {
     const response = await waitForId(orderId);
     console.log("response from QueueWorker -> ", response);
     if(response.success){
-      res.status(200).json(new ApiResponse(200, "Order created Successfully", response.data))
+      console.log("Order created from the queue worker")
     }else{
       throw new CustomError(500, "Engine Processing Error")
     }
@@ -84,22 +84,23 @@ export const closeOrder = asyncHandler(async (req, res) => {
   }
 
   console.log("closeOrder for orderId -> " + orderId + " sent to engine");
-  redisProducer.xAdd("stream", "*", {
+  await redisProducer.xAdd("stream", "*", {
     data: JSON.stringify({
       streamName: "trade-close",
       data: { orderId },
-    }),
+    }), 
   });
 
   try {
     const response = await waitForId(orderId);
     console.log("response from QueueWorker -> ", response);
     if(response.success){
-      res.status(200).json(new ApiResponse(200, "Order closed successfully", response.data))
+      console.log(response.data)
     }
   } catch (error) {
     throw new CustomError(500, "close order failed due to  server error");
   }
+
 
   res.status(200).json(new ApiResponse(200, "close order done", orderId));
 });

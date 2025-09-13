@@ -26,11 +26,8 @@ export default function Signin() {
       );
 
       console.log("User signed in:", res.data);
-      setUser(res.data.user || res.data.data);
-      if( res.data){
-        router.push("/"); 
-
-      }
+      alert(res.data.message)
+      
     } catch (err) {
       console.error("Signin error:", err);
       alert("Invalid email or password");

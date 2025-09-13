@@ -18,7 +18,7 @@ export default function TradingView({
   const secondContainerRef = useRef(null);
   const [data, setData] = useState({});
 
-  console.log("props", asset, interval, limit);
+  // console.log("props", asset, interval, limit);
 
   useEffect(() => {
     if (secondContainerRef.current) {
@@ -55,8 +55,9 @@ export default function TradingView({
           const res = await axios.post(
             `http://localhost:4000/api/v1/candles/get-candles/${asset}/${interval}/${limit}`
           );
-          console.log(res.data.data.rows);
-          console.log(res.data.data.rows[0].bucket);
+          // console.log(res.data.data.rows);
+          // console.log(res.data.data.rows[0].bucket);
+         
 
           const candles = res.data.data.rows.map(
             (candle: {
@@ -84,13 +85,9 @@ export default function TradingView({
 
       fetchData(asset, interval, limit);
 
-      // const refreshInterval = setInterval(() =>{
-      //   console.log("fetched data");
-      //   fetchData();
-      // }, 1000)
+    
 
       return () => {
-        // clearInterval(refreshInterval)
         secondChart.remove();
       };
     }

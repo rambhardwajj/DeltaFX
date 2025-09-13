@@ -7,9 +7,8 @@ const router = Router();
 
 router.post('/signin', singin)
 router.get('/verify/:token',verify)
-router.get('/getUser/:userId',isLoggedIn,  getUserOrders)
+router.get('/getUser/:userId',isLoggedIn, getUserOrders) // this will get all the orders of the users
 router.get('/get-user', isLoggedIn, getuser)
 router.post('/signout', isLoggedIn, logout);
-
 
 export default router

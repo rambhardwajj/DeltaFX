@@ -56,7 +56,7 @@ export const currPrices = {
         {
           offset: "$",
           price: 0,
-          buyPrice:0,
+          buyPrice: 0,
           decimal: 2,
           timeStamp: Date.now(),
         },
@@ -71,11 +71,12 @@ export let user_balance = new Map<string, number>();
 export let shortOrderHm = new Map<string, MinPriorityQueue<liqOrder>>();
 export let longOrdersHm = new Map<string, MaxPriorityQueue<liqOrder>>();
 
-
 function safeReadJsonFile(filePath: string, defaultContent: string): string {
   try {
     if (!fs.existsSync(filePath)) {
-      console.log(`File ${filePath} doesn't exist, creating with default content`);
+      console.log(
+        `File ${filePath} doesn't exist, creating with default content`
+      );
       const dir = path.dirname(filePath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -84,8 +85,8 @@ function safeReadJsonFile(filePath: string, defaultContent: string): string {
       return defaultContent;
     }
 
-    const content = fs.readFileSync(filePath, 'utf8');
-    
+    const content = fs.readFileSync(filePath, "utf8");
+
     // Check if file is empty or contains only whitespace
     if (!content.trim()) {
       console.log(`File ${filePath} is empty, using default content`);
@@ -97,11 +98,10 @@ function safeReadJsonFile(filePath: string, defaultContent: string): string {
     JSON.parse(content);
     console.log(`Successfully loaded ${filePath}`);
     return content;
-    
   } catch (error) {
     console.error(`Error reading/parsing ${filePath}:`, error);
     console.log(`Using default content for ${filePath}`);
-    
+
     // Backup corrupted file
     const backupPath = `${filePath}.corrupted.${Date.now()}`;
     try {
@@ -112,14 +112,17 @@ function safeReadJsonFile(filePath: string, defaultContent: string): string {
     } catch (backupError) {
       console.error(`Failed to backup corrupted file:`, backupError);
     }
-    
+
     // Write default content
     try {
       fs.writeFileSync(filePath, defaultContent);
     } catch (writeError) {
-      console.error(`Failed to write default content to ${filePath}:`, writeError);
+      console.error(
+        `Failed to write default content to ${filePath}:`,
+        writeError
+      );
     }
-    
+
     return defaultContent;
   }
 }
@@ -132,51 +135,61 @@ const defaultShortOrders = JSON.stringify({ shortOrderHm: [] }, null, 2);
 const defaultLongOrders = JSON.stringify({ longOrderHm: [] }, null, 2);
 
 // Safe file reading
-let usersDatafromSS = safeReadJsonFile('data/users.json', defaultUsers);
-let openPositionFromSS = safeReadJsonFile('data/open_orders.json', defaultOpenPositions);
-let userBalanceFromSS = safeReadJsonFile('data/user_balance.json', defaultUserBalance);
-let shortOrderFromSS = safeReadJsonFile('data/shortorder_hm.json', defaultShortOrders);
-let longOrderFromSS = safeReadJsonFile('data/longorder_hm.json', defaultLongOrders);
+let usersDatafromSS = safeReadJsonFile("data/users.json", defaultUsers);
+let openPositionFromSS = safeReadJsonFile(
+  "data/open_orders.json",
+  defaultOpenPositions
+);
+let userBalanceFromSS = safeReadJsonFile(
+  "data/user_balance.json",
+  defaultUserBalance
+);
+let shortOrderFromSS = safeReadJsonFile(
+  "data/shortorder_hm.json",
+  defaultShortOrders
+);
+let longOrderFromSS = safeReadJsonFile(
+  "data/longorder_hm.json",
+  defaultLongOrders
+);
 
 // Safe data conversion with error handling
 try {
   console.log("Converting JSON data to Maps...");
-  
+
   users = JSONToUsers(usersDatafromSS);
   console.log(`✓ Loaded ${users.size} users`);
-  
+
   open_positions = JSONToOpenPositions(openPositionFromSS);
   console.log(`✓ Loaded ${open_positions.size} open positions`);
-  
+
   user_balance = jsonToUserBalance(userBalanceFromSS);
   console.log(`✓ Loaded ${user_balance.size} user balances`);
-  
+
   shortOrderHm = JSONToShortOrderHm(shortOrderFromSS);
   console.log(`✓ Loaded ${shortOrderHm.size} short order queues`);
-  
+
   longOrdersHm = JSONToLongOrderHm(longOrderFromSS);
   console.log(`✓ Loaded ${longOrdersHm.size} long order queues`);
-  
+
   console.log("All data loaded successfully!");
-  
 } catch (error) {
   console.error("Error converting JSON to data structures:", error);
   console.log("Initializing with empty data structures as fallback");
-  
+
   users = new Map<string, UserI>();
   open_positions = new Map<string, OrderI>();
   user_balance = new Map<string, number>();
   shortOrderHm = new Map<string, MinPriorityQueue<liqOrder>>();
   longOrdersHm = new Map<string, MaxPriorityQueue<liqOrder>>();
-  
+
   console.log("Fallback initialization complete");
 }
-console.log(users)
-console.log(open_positions)
-console.log(user_balance)
-console.log(shortOrderHm)
-console.log(longOrdersHm)
-
+console.log(users);
+console.log(open_positions);
+console.log(user_balance);
+console.log(shortOrderHm);
+console.log(longOrdersHm);
 
 function returnResponseToStream(
   stream: string,
@@ -210,7 +223,7 @@ async function receiveStreamData(stream: string) {
       // @ts-ignore
       responseFromStream[0].messages[0].message.data
     );
-    console.log(streamName);
+    // console.log(streamName);
 
     // CURR PRICES
     if (streamName === "curr-prices") {
@@ -219,20 +232,18 @@ async function receiveStreamData(stream: string) {
         // call auto liquidate function
         liquidateOrder(asset);
       });
-      console.log();
-      console.log(data);
     }
     // TRADE CREATE
     if (streamName === "trade-create") {
       console.log();
-      console.log("Incoming data", data);
-      console.log("Orders Before: ", Object.fromEntries(open_positions));
+      console.log("Incoming data", data)
+      console.log("Orders Before: ", Object.fromEntries(open_positions))
 
       if (
         !["long", "short"].includes(data.data.type) ||
         data.data.leverage < 1
       ) {
-        console.log("some order data not foung");
+        console.log("orrdet type does not exists");
         returnResponseToStream(
           "return-stream",
           false,
@@ -242,6 +253,13 @@ async function receiveStreamData(stream: string) {
         );
         continue;
       }
+
+      console.log(data.userId);
+      console.log(data.data.asset);
+      console.log(data.data.type);
+      console.log(data.data.margin);
+      console.log(data.data.leverage);
+      console.log(data.data.slippage);
       if (
         !data.userId ||
         !data.data.asset ||
@@ -342,6 +360,11 @@ async function receiveStreamData(stream: string) {
 
       const balanceMap = new Map<string, BalanceAmt>();
 
+      if(users.has(data.userId)){
+        console.log("User already exists");
+        continue;
+      }
+
       balanceMap.set("USD", { balance: 500000, type: "usd" });
       user_balance.set(data.userId, 500000);
 
@@ -367,10 +390,8 @@ async function receiveStreamData(stream: string) {
         200,
         userReturn
       );
-      // console.log("users map- >  ", users);
 
       const JsonUser = usersToJSON(users);
-      // console.log("Here are json users-> ", JsonUser);
     }
     // GET USER BALANCE
     if (streamName === "get-user-balance") {
@@ -445,8 +466,8 @@ async function receiveStreamData(stream: string) {
       }
     }
 
-    if( streamName === "get-user"){
-      if( !data.userId || !users.has(data.userId)){
+    if (streamName === "get-user") {
+      if (!data.userId || !open_positions.has(data.userId)) {
         returnResponseToStream(
           "return-stream",
           false,
@@ -456,15 +477,22 @@ async function receiveStreamData(stream: string) {
         );
         continue;
       }
-
-      const user = users.get(data.userId);
+      console.log("hehe");
+      const userOrders = Array.from(open_positions.values()).filter(
+        (order) => order.userId === data.userId
+      );
+      const orderDetailsToSend = {
+        id: data.userId, 
+        userOrders : userOrders
+      }
+      console.log(userOrders);
       returnResponseToStream(
         "return-stream",
         true,
-        "returned the user",
+        "returned the order ",
         200,
-        user
-      )
+        orderDetailsToSend
+      );
     }
   }
 }
@@ -514,7 +542,6 @@ setInterval(() => {
     }
     console.log("Short order written in file.");
   });
-
 }, 10000);
 
 receiveStreamData("stream");

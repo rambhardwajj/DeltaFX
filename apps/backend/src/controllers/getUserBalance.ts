@@ -81,7 +81,7 @@ export const getUserUsdBalance = asyncHandler(async (req, res) =>{
     }
 
   } catch (error) {
-    console.log(error)
+    throw new CustomError(500, "Error from queue worker")
   }
 
   res.status(200).json(new ApiResponse(200, "usd balance returned to the usr",result ))

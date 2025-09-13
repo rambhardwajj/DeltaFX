@@ -65,6 +65,7 @@ export const waitForId = async (id: string): Promise<EngineResponse> => {
       return;
     }
     
+    console.log('setting id to resolve')
     idPromseMap.set(id, resolve);
     setTimeout(() => {
       idPromseMap.delete(id);
