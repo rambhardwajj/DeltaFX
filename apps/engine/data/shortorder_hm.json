@@ -2,14 +2,7 @@
   "shortOrderHm": [
     [
       "bookTicker.SOL_USDC",
-      [
-        {
-          "orderId": "cfae2b71-c43b-436e-b2ad-e381ff3d76bc",
-          "liqPrice": 49299,
-          "userId": "8849478e-2297-4a33-af65-47aac8caa90a",
-          "asset": "bookTicker.SOL_USDC"
-        }
-      ]
+      []
     ]
   ]
 }

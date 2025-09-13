@@ -1,5 +1,5 @@
 "use client";
-import OrdersComponent, { Order } from "@/components/OrdersComponent";
+import {OrdersComponent, OrderI} from "@/components/OrdersComponent";
 import TradingView from "@/components/TradingView";
 import { useUser } from "@/context/UserContext";
 import { api } from "@/utils/api";
@@ -45,7 +45,7 @@ export default function Home() {
 
   const [balance, setBalance] = useState<number | null>(null);
 
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderI[]>([]);
 
   const currPricesWsRef = useRef<Record<string, Price>>(
     DBASSETS.reduce(
@@ -60,6 +60,7 @@ export default function Home() {
       {} as Record<string, Price>
     )
   );
+
 
   useEffect(() => {
     const interval = setInterval(() => setRender((prev) => prev + 1), 300);
@@ -123,6 +124,61 @@ export default function Home() {
       console.error("Error placing order");
     }
   }
+  const fetchUserBalance = async () => {
+    try {
+      const res = await api.get("/balance");
+      setBalance(res.data.data.data.userBalance.USD.balance); 
+    } catch (err) {
+      console.error("Error fetching balance", err);
+    }
+  };
+
+  const fetchUserOrders = async () => {
+    try {
+      console.log("inside fetch orders");
+      if (!user) return;
+      console.log(user);
+      const res = await api.get(`/auth/getUser/${user.id}`);
+      console.log(res.data.data.data.userOrders);
+      setOrders(res.data.data.data.userOrders);
+    } catch (err) {
+      console.error("Error fetching orders", err);
+    }
+  };
+  const handleCloseOrder = async (orderId: string) => {
+    try {
+      console.log("Closing order:", orderId);
+      
+      const response = await api.post("/trade/close", {
+        orderId: orderId
+      });
+      
+      if (response.data.success) {
+        console.log("Order closed successfully:", response.data);
+        alert(`Order closed successfully!`);
+        
+        // Refresh data
+        await fetchUserOrders();
+        await fetchUserBalance();
+        
+      } else {
+        console.error("Failed to close order:", response.data);
+        alert("Failed to close order. Please try again.");
+      }
+      
+    } catch (error) {
+      console.error("Error closing order:", error);
+      // @ts-expect-error it is configured in backend
+      if (error.response?.status === 403) {
+        alert("Invalid order ID or permission denied.");
+      // @ts-expect-error it is configured in backend
+      } else if (error.response?.status === 500) {
+        alert("Server error occurred. Please try again later.");
+      } else {
+        alert("Failed to close order. Please check your connection and try again.");
+      }
+    }
+  };
 
   useEffect(() => {
     async function fetchBalance() {
@@ -455,10 +511,7 @@ export default function Home() {
               history={history}
               setHistory={setHistory}
               currPrices={currPricesWsRef.current}
-              onCloseOrder={(orderId) => {
-                console.log("Closing order:", orderId);
-                
-              }}
+              onCloseOrder={handleCloseOrder}
             />
           </div>
         </div>

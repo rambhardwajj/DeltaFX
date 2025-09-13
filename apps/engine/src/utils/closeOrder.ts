@@ -78,8 +78,11 @@ export async function closeOrder(
   }
 
   const userBalance = users.get(userId)?.balance.get("USD")?.balance || 0;
+  console.log("USER BALANCE ==>",userBalance)
+  console.log("PROFIT ==>",Number(profit.toFixed(2)))
+  console.log("MARGIN ==>",margin)
   users.get(userId)?.balance.set("USD", {
-    balance: userBalance + profit + margin,
+    balance: userBalance + Number(profit.toFixed(2)) + margin,
     type: "usd",
   });
 
@@ -112,7 +115,7 @@ export async function closeOrder(
 
   open_positions.delete(orderId);
 
-  user_balance.set(userId, userBalance + profit);
+  user_balance.set(userId, userBalance + Number(profit.toFixed(2)));
 
   await sendToReturnStream(
     "return-stream",

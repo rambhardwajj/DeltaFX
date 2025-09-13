@@ -9,21 +9,21 @@
           [
             "USD",
             {
-              "balance": 325000,
+              "balance": 374279.57,
               "type": "usd"
             }
           ],
           [
             "bookTicker.SOL_USDC_long",
             {
-              "balance": 4.0718277513873025,
+              "balance": 2.035664848139402,
               "type": "long"
             }
           ],
           [
             "bookTicker.SOL_USDC_short",
             {
-              "balance": 1.018661885746883,
+              "balance": 0,
               "type": "short"
             }
           ]

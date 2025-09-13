@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-interface Order {
+export interface OrderI {
   asset: string;
   entryPrice: number;
   id: string;
@@ -15,14 +15,14 @@ interface Order {
 }
 
 interface OrdersComponentProps {
-  orders: Order[];
+  orders: OrderI[];
   history: string;
   setHistory: (value: string) => void;
   currPrices: Record<string, { price: number; buyPrice: number }>;
   onCloseOrder?: (orderId: string) => void;
 }
 
-const OrdersComponent: React.FC<OrdersComponentProps> = ({ 
+export const OrdersComponent: React.FC<OrdersComponentProps> = ({ 
   orders, 
   history, 
   setHistory, 
@@ -49,7 +49,7 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
     }
   });
 
-  const calculatePnL = (order: Order) => {
+  const calculatePnL = (order: OrderI) => {
     const assetSymbol = getAssetSymbol(order.asset);
     const currentPrice = currPrices[assetSymbol]?.price || 0;
     
@@ -236,4 +236,3 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
   );
 };
 
-export default OrdersComponent;
