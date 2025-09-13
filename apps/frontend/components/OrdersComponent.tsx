@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export interface Order {
+interface Order {
   asset: string;
   entryPrice: number;
   id: string;
@@ -29,7 +29,6 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
   currPrices,
   onCloseOrder 
 }) => {
-  // Helper function to extract asset symbol from full asset name
   const getAssetSymbol = (fullAsset: string) => {
     if (fullAsset.includes('BTC')) return 'BTC';
     if (fullAsset.includes('SOL')) return 'SOL';
@@ -37,7 +36,6 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
     return fullAsset;
   };
 
-  // Filter orders based on selected history type
   const filteredOrders = orders.filter(order => {
     switch (history) {
       case 'OPEN':
@@ -51,7 +49,6 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
     }
   });
 
-  // Calculate P&L for an order
   const calculatePnL = (order: Order) => {
     const assetSymbol = getAssetSymbol(order.asset);
     const currentPrice = currPrices[assetSymbol]?.price || 0;
@@ -62,7 +59,7 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
     if (order.type === 'long') {
       pnl = (currentPrice - ((order.entryPrice)/100)) * order.quantity;
     } else {
-      pnl = (((order.entryPrice)) - currentPrice) * order.quantity;
+      pnl = (((order.entryPrice)/100) - currentPrice) * order.quantity;
     }
     
     const pnlPercentage = (pnl / order.margin) * 100;
@@ -159,7 +156,7 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
 
                 {/* Margin */}
                 <div className="text-white">
-                  ${order.margin}
+                  ${Number(order.margin)/100}
                 </div>
 
                 {/* Leverage */}
@@ -215,7 +212,7 @@ const OrdersComponent: React.FC<OrdersComponentProps> = ({
             <div>
               <span className="text-gray-400">Total Margin: </span>
               <span className="text-white">
-                ${filteredOrders.reduce((sum, order) => sum + order.margin, 0)}
+                ${Number(filteredOrders.reduce((sum, order) => sum + order.margin, 0))/100}
               </span>
             </div>
             <div>

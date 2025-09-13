@@ -1,3 +1,34 @@
 {
-  "users": []
+  "users": [
+    [
+      "8849478e-2297-4a33-af65-47aac8caa90a",
+      {
+        "id": "8849478e-2297-4a33-af65-47aac8caa90a",
+        "email": "rammmm@gmail.com",
+        "balance": [
+          [
+            "USD",
+            {
+              "balance": 325000,
+              "type": "usd"
+            }
+          ],
+          [
+            "bookTicker.SOL_USDC_long",
+            {
+              "balance": 4.0718277513873025,
+              "type": "long"
+            }
+          ],
+          [
+            "bookTicker.SOL_USDC_short",
+            {
+              "balance": 1.018661885746883,
+              "type": "short"
+            }
+          ]
+        ]
+      }
+    ]
+  ]
 }

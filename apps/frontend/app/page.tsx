@@ -41,6 +41,7 @@ export default function Home() {
   const [slippage, setSlippage] = useState<number>(1);
   const [selected, setSelected] = useState<string | null>(null);
   const [render, setRender] = useState(0);
+  const [orderC, setOrderC] = useState(0)
 
   const [balance, setBalance] = useState<number | null>(null);
 
@@ -110,14 +111,14 @@ export default function Home() {
         type: selected,
         leverage: leverage || 1,
         quantity: Number(quantity),
-        margin: Number(margin) || 0,
+        margin: Number(Number(margin)*100) || 0,
         slippage: Number(slippage) || null,
       });
 
       console.log("Order placed:", res.data);
       alert(res.data.message);
 
-      setRender((prev) => prev + 1);
+      setOrderC((prev) => prev + 1)
     } catch {
       console.error("Error placing order");
     }
@@ -128,7 +129,7 @@ export default function Home() {
       try {
         if (!user) return;
         const res = await api.get("/balance");
-        setBalance(res.data.data.data.userBalance.USD.balance);
+        setBalance(Number(res.data.data.data.userBalance.USD.balance)/100);
       } catch (err) {
         console.error("Error fetching balance", err);
       }
@@ -146,7 +147,7 @@ export default function Home() {
     }
     fetchOrders();
     fetchBalance();
-  }, [user]);
+  }, [user, orderC]);
 
   return (
     <div className="">
@@ -250,6 +251,7 @@ export default function Home() {
                       <span>{price.toFixed(2)}</span>
                     </div>
                   </div>
+
                 </div>
               )
             )}
@@ -454,9 +456,8 @@ export default function Home() {
               setHistory={setHistory}
               currPrices={currPricesWsRef.current}
               onCloseOrder={(orderId) => {
-                // Add your close order logic here
                 console.log("Closing order:", orderId);
-                // You might want to call an API endpoint to close the order
+                
               }}
             />
           </div>

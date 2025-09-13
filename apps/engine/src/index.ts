@@ -293,8 +293,6 @@ async function receiveStreamData(stream: string) {
     }
     // TRADE CLOSE
     if (streamName === "trade-close") {
-      console.log();
-
       const closeOrderData = { id: data.orderId };
       const orderData = open_positions.get(data.orderId);
       if (!orderData) {
@@ -347,6 +345,7 @@ async function receiveStreamData(stream: string) {
     }
     // CREATE USER
     if (streamName === "create-user") {
+      console.log("creating USER")
       if (!data.userId || !data.data.email) {
         returnResponseToStream(
           "return-stream",
@@ -383,6 +382,7 @@ async function receiveStreamData(stream: string) {
         email: data.email,
         balance: Object.fromEntries(balanceMap),
       };
+
       returnResponseToStream(
         "return-stream",
         true,
@@ -465,13 +465,14 @@ async function receiveStreamData(stream: string) {
         }
       }
     }
-
+    // GET USER
     if (streamName === "get-user") {
-      if (!data.userId || !open_positions.has(data.userId)) {
+      console.log("incoming data" , data)
+      if (!data.userId || !users.has(data.userId)) {
         returnResponseToStream(
           "return-stream",
           false,
-          "Cannot get users as userId is null",
+          "Cannot get order as orderId is null",
           404,
           null
         );
@@ -480,7 +481,9 @@ async function receiveStreamData(stream: string) {
       console.log("hehe");
       const userOrders = Array.from(open_positions.values()).filter(
         (order) => order.userId === data.userId
-      );
+      )
+      console.log("user Orders-->>" , userOrders)
+
       const orderDetailsToSend = {
         id: data.userId, 
         userOrders : userOrders
@@ -542,7 +545,7 @@ setInterval(() => {
     }
     console.log("Short order written in file.");
   });
-}, 10000);
+}, 20000);
 
 receiveStreamData("stream");
 
