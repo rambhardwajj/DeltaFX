@@ -185,11 +185,11 @@ try {
 
   console.log("Fallback initialization complete");
 }
-console.log(users);
-console.log(open_positions);
-console.log(user_balance);
-console.log(shortOrderHm);
-console.log(longOrdersHm);
+// console.log(users);
+// console.log(open_positions);
+// console.log(user_balance);
+// console.log(shortOrderHm);
+// console.log(longOrdersHm);
 
 function returnResponseToStream(
   stream: string,

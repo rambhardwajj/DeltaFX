@@ -33,12 +33,16 @@ export async function closeOrder(
   margin: number,
   quantity: number
 ) {
-  let assetQuantity;
-  if( type === "long")
-    assetQuantity = users.get(userId)?.balance.get(asset+"_long")?.balance;
-  else {
-    assetQuantity = users.get(userId)?.balance.get(asset+"_short")?.balance;
+  const order = open_positions.get(orderId);
+  if (!order) {
+    await sendToReturnStream("return-stream", false, "Order not found", 404, {
+      id: orderId,
+    });
+    return;
   }
+
+  const assetQuantity = order.quantity;
+
   if (!assetQuantity) {
     await sendToReturnStream(
       "return-stream",
@@ -55,7 +59,7 @@ export async function closeOrder(
   let pq;
 
   if (type === "long") {
-    profit = (currPriceOfAsset - entryPrice) * assetQuantity * leverage;
+    profit = (currPriceOfAsset - entryPrice) * assetQuantity * leverage ;
     pq = longOrdersHm.get(asset);
   } else if (type === "short") {
     profit = (entryPrice - currPriceOfAsset) * assetQuantity * leverage;
@@ -72,42 +76,52 @@ export async function closeOrder(
     );
   }
 
+  console.log();
+  console.log("PROFITTT. ", profit);
+  console.log();
+
   if (pq) {
     console.log("liquidating order-> ", orderId);
     pq.remove((o) => o.orderId === orderId);
   }
 
   const userBalance = users.get(userId)?.balance.get("USD")?.balance || 0;
-  console.log("USER BALANCE ==>",userBalance)
-  console.log("PROFIT ==>",Number(profit.toFixed(2)))
-  console.log("MARGIN ==>",margin)
+  console.log("USER BALANCE ==>", userBalance);
+  console.log("PROFIT ==>", Number(profit.toFixed(0)));
+  console.log("MARGIN ==>", margin);
+
   users.get(userId)?.balance.set("USD", {
-    balance: userBalance + Number(profit.toFixed(2)) + margin,
+    balance: userBalance + Number(profit.toFixed(0)) + margin,
     type: "usd",
   });
 
+  // update quantity 
   if (type === "long") {
     if (
-      users.get(userId)?.balance.get(asset+"_long") &&
+      users.get(userId)?.balance.get(asset + "_long") &&
       open_positions.get(orderId) &&
-      users.get(userId)?.balance.get(asset+"_long")!.type === "long"
+      users.get(userId)?.balance.get(asset + "_long")!.type === "long"
     ) {
       let orderQuantity = open_positions.get(orderId)?.quantity!;
-      let currQuantity = users.get(userId)?.balance.get(asset+"_long")?.balance!;
-      users.get(userId)?.balance.set(asset+"_long", {
+      let currQuantity = users
+        .get(userId)
+        ?.balance.get(asset + "_long")?.balance!;
+      users.get(userId)?.balance.set(asset + "_long", {
         balance: currQuantity - orderQuantity,
         type: "long",
       });
     }
   } else if (
     type === "short" &&
-    users.get(userId)?.balance.get(asset+"_short") &&
+    users.get(userId)?.balance.get(asset + "_short") &&
     open_positions.get(orderId) &&
-    users.get(userId)?.balance.get(asset+"_short")!.type === "short"
+    users.get(userId)?.balance.get(asset + "_short")!.type === "short"
   ) {
     let orderQuantity = open_positions.get(orderId)?.quantity!;
-    let currQuantity = users.get(userId)?.balance.get(asset+"_short")?.balance!;
-    users.get(userId)?.balance.set(asset+"_short", {
+    let currQuantity = users
+      .get(userId)
+      ?.balance.get(asset + "_short")?.balance!;
+    users.get(userId)?.balance.set(asset + "_short", {
       balance: currQuantity - orderQuantity,
       type: "short",
     });
@@ -115,10 +129,10 @@ export async function closeOrder(
 
   open_positions.delete(orderId);
 
-  user_balance.set(userId, userBalance + Number(profit.toFixed(2)));
+  user_balance.set(userId, userBalance + Number(profit.toFixed(0)) + margin);
 
   await sendToReturnStream(
-    "return-stream",
+    "close-order-stream",
     true,
     "Order closed successfully ",
     200,

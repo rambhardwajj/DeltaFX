@@ -3,7 +3,7 @@ import {
   MinPriorityQueue,
 } from "@datastructures-js/priority-queue";
 
-import { currPrices} from "../index"
+import { currPrices } from "../index";
 
 import {
   users,
@@ -64,12 +64,11 @@ function calculateLiquidationPrice(
   leverage: number,
   type: string
 ) {
-
   let liquidationPrice: number;
   if (type === "long") {
-    liquidationPrice = currPriceOfStock - margin / leverage;
+    liquidationPrice = currPriceOfStock * (1 - 1 / leverage);
   } else {
-    liquidationPrice = currPriceOfStock + margin / leverage;
+    liquidationPrice = currPriceOfStock * (1 + 1 / leverage);
   }
 
   return liquidationPrice;
@@ -101,9 +100,9 @@ export async function processTradeCreation({
 
   console.log("assetPrice", asset);
   console.log("currPrices", currPrices[asset]);
-  const assetPrice = (currPrices[asset]!.price);
-  const assetBuyPrice = (currPrices[asset]!.buyPrice);
-  if (!assetPrice || assetPrice === 0 ) {
+  const assetPrice = currPrices[asset]!.price;
+  const assetBuyPrice = currPrices[asset]!.buyPrice;
+  if (!assetPrice || assetPrice === 0) {
     await sendToReturnStream("return-stream", false, "Price not found", 404, {
       id: orderId,
     });
@@ -131,44 +130,47 @@ export async function processTradeCreation({
   const quantity = margin / assetBuyPrice;
   const exposure = quantity * leverage;
 
-  console.log( "margin ->>  ",margin)
-  console.log("assetPrice -->>", assetPrice)
-  console.log("quantity -->>", quantity)
+  console.log("margin ->>  ", margin);
+  console.log("assetPrice -->>", assetPrice);
+  console.log("quantity -->>", quantity);
 
-  user_balance.set(userId, bal - requiredMargin);
+  user_balance.set(userId, Number((bal - requiredMargin).toFixed(0)));
   users
     .get(userId)
-    ?.balance.set("USD", { balance: bal - requiredMargin, type: "usd" });
+    ?.balance.set("USD", { balance: Number((bal - requiredMargin).toFixed(0)), type: "usd" });
 
-    // add asset balance to user's account 
   if (type === "long") {
     if (
-      users.get(userId)?.balance.has(asset+"_long") &&
-      users.get(userId)!.balance.get(asset+"_long")!.type === "long"
+      users.get(userId)?.balance.has(asset + "_long") &&
+      users.get(userId)!.balance.get(asset + "_long")!.type === "long"
     ) {
-      let curBalOfAsset = users.get(userId)?.balance.get(asset+"_long")?.balance;
-      users.get(userId)?.balance.set(asset+"_long", {
+      let curBalOfAsset = users
+        .get(userId)
+        ?.balance.get(asset + "_long")?.balance;
+      users.get(userId)?.balance.set(asset + "_long", {
         balance: curBalOfAsset! + quantity,
         type: "long",
       });
     } else {
-      users.get(userId)?.balance.set(asset+"_long", {
+      users.get(userId)?.balance.set(asset + "_long", {
         balance: quantity,
         type: "long",
       });
     }
   } else {
     if (
-      users.get(userId)?.balance.has(asset) &&
-      users.get(userId)!.balance.get(asset)!.type === "short"
+      users.get(userId)?.balance.has(asset + "_short") &&
+      users.get(userId)!.balance.get(asset + "_short")!.type === "short"
     ) {
-      let curBalOfAsset = users.get(userId)?.balance.get(asset+"_short")?.balance;
-      users.get(userId)?.balance.set(asset+"_short", {
+      let curBalOfAsset = users
+        .get(userId)
+        ?.balance.get(asset + "_short")?.balance;
+      users.get(userId)?.balance.set(asset + "_short", {
         balance: curBalOfAsset! + quantity,
         type: "short",
       });
     } else {
-      users.get(userId)?.balance.set(asset+"_short", {
+      users.get(userId)?.balance.set(asset + "_short", {
         balance: quantity,
         type: "short",
       });
@@ -202,7 +204,7 @@ export async function processTradeCreation({
     liquidationPrice,
     entryPrice: assetPrice,
     status: "OPEN",
-    quantity
+    quantity,
   };
 
   open_positions.set(orderId, newOrder);

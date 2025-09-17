@@ -1,22 +1,22 @@
 {
   "users": [
     [
-      "8849478e-2297-4a33-af65-47aac8caa90a",
+      "7966bda9-72d0-4baf-b9a4-0a018e4e8f33",
       {
-        "id": "8849478e-2297-4a33-af65-47aac8caa90a",
-        "email": "rammmm@gmail.com",
+        "id": "7966bda9-72d0-4baf-b9a4-0a018e4e8f33",
+        "email": "ram@gmail.com",
         "balance": [
           [
             "USD",
             {
-              "balance": 249301.87999999998,
+              "balance": 440161,
               "type": "usd"
             }
           ],
           [
             "bookTicker.SOL_USDC_long",
             {
-              "balance": 2.035664848139403,
+              "balance": 8.881784197001252e-16,
               "type": "long"
             }
           ],
