@@ -9,7 +9,7 @@
           [
             "USD",
             {
-              "balance": 440161,
+              "balance": 333764,
               "type": "usd"
             }
           ],
@@ -23,7 +23,7 @@
           [
             "bookTicker.SOL_USDC_short",
             {
-              "balance": 0,
+              "balance": 5.551115123125783e-17,
               "type": "short"
             }
           ]

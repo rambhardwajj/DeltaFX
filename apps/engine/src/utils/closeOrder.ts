@@ -132,6 +132,26 @@ export async function closeOrder(
   user_balance.set(userId, userBalance + Number(profit.toFixed(0)) + margin);
 
   await sendToReturnStream(
+    "return-stream",
+    true,
+    "Order closed successfully ",
+    200,
+    {
+      id: orderId,
+      data: {
+        id: orderId,
+        openPrice: entryPrice,
+        closePrice: currPriceOfAsset,
+        leverage: leverage,
+        pnl: Number((profit).toFixed(0)),
+        assetId: asset,
+        liquidated: true,
+        userId: userId,
+        // quantity,
+      },
+    }
+  );
+  await sendToReturnStream(
     "close-order-stream",
     true,
     "Order closed successfully ",
@@ -143,12 +163,13 @@ export async function closeOrder(
         openPrice: entryPrice,
         closePrice: currPriceOfAsset,
         leverage: leverage,
-        pnl: profit,
+        pnl: Number((profit).toFixed(0)),
         assetId: asset,
         liquidated: true,
         userId: userId,
-        quantity,
+        // quantity,
       },
     }
   );
+  
 }
