@@ -50,28 +50,33 @@ export const OrdersComponent: React.FC<OrdersComponentProps> = ({
   });
 
   const calculatePnL = (order: OrderI) => {
-    const assetSymbol = getAssetSymbol(order.asset);
-    const currentPrice = currPrices[assetSymbol]?.price || 0;
-    
-    if (currentPrice === 0) return { pnl: 0, pnlPercentage: 0 };
-    
-    let pnl = 0;
-    if (order.type === 'long') {
-      pnl = (currentPrice - ((order.entryPrice)/100)) * order.quantity;
-    } else {
-      pnl = (((order.entryPrice)/100) - currentPrice) * order.quantity;
-    }
-    
-    const pnlPercentage = (pnl / order.margin) * 100;
-    return { pnl, pnlPercentage };
-  };
+  const assetSymbol = getAssetSymbol(order.asset);
+  const currentPriceRaw = currPrices[assetSymbol]?.price || 0;
 
-  // Get color based on order type
+  if (currentPriceRaw === 0) return { pnl: 0, pnlPercentage: 0 };
+
+  // Convert backend-stored *100 values back to real values
+  const entryPrice = order.entryPrice / 100;
+  const margin = order.margin / 100;
+  const currentPrice = currentPriceRaw; // already real price from API
+  const quantity = order.quantity;
+
+  let pnl = 0;
+  if (order.type === "long") {
+    pnl = (currentPrice - entryPrice) * quantity * order.leverage;
+  } else {
+    pnl = (entryPrice - currentPrice) * quantity * order.leverage;
+  }
+
+  const pnlPercentage = (pnl / margin) * 100;
+  return { pnl, pnlPercentage };
+};
+
+
   const getTypeColor = (type: string) => {
     return type === 'long' ? 'text-green-400' : 'text-red-400';
   };
 
-  // Get P&L color
   const getPnLColor = (pnl: number) => {
     if (pnl > 0) return 'text-green-400';
     if (pnl < 0) return 'text-red-400';
@@ -200,7 +205,6 @@ export const OrdersComponent: React.FC<OrdersComponentProps> = ({
         </div>
       )}
 
-      {/* Summary for open positions */}
       {history === 'OPEN' && filteredOrders.length > 0 && (
         <div className="mt-6 p-4 bg-[#0a0a0a] rounded-lg border border-[#1a1a1a]">
           <h4 className="text-sm font-medium text-gray-300 mb-2">Portfolio Summary</h4>
