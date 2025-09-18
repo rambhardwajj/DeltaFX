@@ -11,7 +11,12 @@ export default function Signin() {
   const router = useRouter();
   const { user, setUser } = useUser();
 
-  if (user) router.push("/");
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push("/");
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,16 +24,17 @@ export default function Signin() {
     try {
       const res = await axios.post(
         "http://localhost:4000/api/v1/auth/signin",
-        {
-          email,
-        },
+        { email },
         { withCredentials: true }
       );
 
       console.log("User signed in:", res.data);
-      router.push("/")
-      alert(res.data.message)
-      
+
+      // Save user in context
+      setUser(res.data.user);
+
+      // Redirect to homepage
+      router.push("/");
     } catch (err) {
       console.error("Signin error:", err);
       alert("Invalid email or password");

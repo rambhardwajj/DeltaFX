@@ -9,21 +9,21 @@
           [
             "USD",
             {
-              "balance": 3899807,
+              "balance": 4022464,
               "type": "usd"
             }
           ],
           [
             "bookTicker.SOL_USDC_long",
             {
-              "balance": 4.009944662763654,
+              "balance": 0,
               "type": "long"
             }
           ],
           [
             "bookTicker.SOL_USDC_short",
             {
-              "balance": 0.040084980157934824,
+              "balance": 0,
               "type": "short"
             }
           ],
@@ -32,6 +32,13 @@
             {
               "balance": 0,
               "type": "long"
+            }
+          ],
+          [
+            "bookTicker.ETH_USDC_short",
+            {
+              "balance": 0,
+              "type": "short"
             }
           ]
         ]
