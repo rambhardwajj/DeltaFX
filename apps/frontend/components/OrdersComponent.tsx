@@ -1,4 +1,5 @@
-import { useState } from 'react';
+"use client";
+import { useEffect } from "react";
 
 export interface OrderI {
   asset: string;
@@ -9,8 +10,8 @@ export interface OrderI {
   margin: number;
   quantity: number;
   slippage: number;
-  status: 'OPEN' | 'CLOSED' | 'PENDING';
-  type: 'long' | 'short';
+  status: "OPEN" | "CLOSED" | "PENDING";
+  type: "long" | "short";
   userId: string;
 }
 
@@ -20,67 +21,76 @@ interface OrdersComponentProps {
   setHistory: (value: string) => void;
   currPrices: Record<string, { price: number; buyPrice: number }>;
   onCloseOrder?: (orderId: string) => void;
+  onPnLUpdate?: (totalPnL: number) => void;
 }
 
-export const OrdersComponent: React.FC<OrdersComponentProps> = ({ 
-  orders, 
-  history, 
-  setHistory, 
+export const OrdersComponent: React.FC<OrdersComponentProps> = ({
+  orders,
+  history,
+  setHistory,
   currPrices,
-  onCloseOrder 
+  onCloseOrder,
+  onPnLUpdate,
 }) => {
-  const getAssetSymbol = (fullAsset: string) => {
-    if (fullAsset.includes('BTC')) return 'BTC';
-    if (fullAsset.includes('SOL')) return 'SOL';
-    if (fullAsset.includes('ETH')) return 'ETH';
-    return fullAsset;
-  };
-
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = orders.filter((order) => {
     switch (history) {
-      case 'OPEN':
-        return order.status === 'OPEN';
-      case 'Pending':
-        return order.status === 'PENDING';
-      case 'Closed':
-        return order.status === 'CLOSED';
+      case "OPEN":
+        return order.status === "OPEN";
+      case "Pending":
+        return order.status === "PENDING";
+      case "Closed":
+        return order.status === "CLOSED";
       default:
         return true;
     }
   });
-
-  const calculatePnL = (order: OrderI) => {
-  const assetSymbol = getAssetSymbol(order.asset);
-  const currentPriceRaw = currPrices[assetSymbol]?.price || 0;
-
-  if (currentPriceRaw === 0) return { pnl: 0, pnlPercentage: 0 };
-
-  // Convert backend-stored *100 values back to real values
-  const entryPrice = order.entryPrice / 100;
-  const margin = order.margin / 100;
-  const currentPrice = currentPriceRaw; // already real price from API
-  const quantity = order.quantity;
-
-  let pnl = 0;
-  if (order.type === "long") {
-    pnl = (currentPrice - entryPrice) * quantity * order.leverage;
-  } else {
-    pnl = (entryPrice - currentPrice) * quantity * order.leverage;
-  }
-
-  const pnlPercentage = (pnl / margin) * 100;
-  return { pnl, pnlPercentage };
-};
-
-
-  const getTypeColor = (type: string) => {
-    return type === 'long' ? 'text-green-400' : 'text-red-400';
+  const getAssetSymbol = (fullAsset: string) => {
+    if (fullAsset.includes("BTC")) return "BTC";
+    if (fullAsset.includes("SOL")) return "SOL";
+    if (fullAsset.includes("ETH")) return "ETH";
+    return fullAsset;
   };
+  const calculatePnL = (order: OrderI) => {
+    const assetSymbol = getAssetSymbol(order.asset);
+    const currentPriceRaw = currPrices[assetSymbol]?.price || 0;
 
+    if (currentPriceRaw === 0) return { pnl: 0, pnlPercentage: 0 };
+
+    // Convert backend-stored *100 values back to real values
+    const entryPrice = order.entryPrice / 100;
+    const margin = order.margin / 100;
+    const currentPrice = currentPriceRaw;
+    const quantity = order.quantity;
+
+    let pnl = 0;
+    if (order.type === "long") {
+      pnl = (currentPrice - entryPrice) * quantity * order.leverage;
+    } else {
+      pnl = (entryPrice - currentPrice) * quantity * order.leverage;
+    }
+
+    const pnlPercentage = (pnl / margin) * 100;
+    return { pnl, pnlPercentage };
+  };
+  useEffect(() => {
+    if (onPnLUpdate) {
+      const openPositions = orders.filter((order) => order.status === "OPEN");
+      const totalPnL = openPositions.reduce((sum, order) => {
+        const { pnl } = calculatePnL(order);
+        return sum + pnl;
+      }, 0);
+
+      onPnLUpdate(totalPnL);
+    }
+  }, [orders, currPrices, onPnLUpdate]);
+  
+  const getTypeColor = (type: string) => {
+    return type === "long" ? "text-green-400" : "text-red-400";
+  };
   const getPnLColor = (pnl: number) => {
-    if (pnl > 0) return 'text-green-400';
-    if (pnl < 0) return 'text-red-400';
-    return 'text-gray-300';
+    if (pnl > 0) return "text-green-400";
+    if (pnl < 0) return "text-red-400";
+    return "text-gray-300";
   };
 
   return (
@@ -125,72 +135,73 @@ export const OrdersComponent: React.FC<OrdersComponentProps> = ({
             const { pnl, pnlPercentage } = calculatePnL(order);
 
             return (
-              <div 
-                key={order.id} 
+              <div
+                key={order.id}
                 className="grid grid-cols-10 gap-4 px-4 py-3 bg-[#0f0f0f] rounded-lg border border-[#1a1a1a] hover:border-[#2a2a2a] transition-colors"
               >
                 {/* Asset */}
                 <div className="flex items-center space-x-2">
-                  <img 
-                    src={`/${assetSymbol}.png`} 
-                    alt={assetSymbol} 
+                  <img
+                    src={`/${assetSymbol}.png`}
+                    alt={assetSymbol}
                     className="w-6 h-6 rounded-full"
                   />
                   <span className="text-white font-medium">{assetSymbol}</span>
                 </div>
 
                 {/* Type */}
-                <div className={`font-medium uppercase ${getTypeColor(order.type)}`}>
+                <div
+                  className={`font-medium uppercase ${getTypeColor(order.type)}`}
+                >
                   {order.type}
                 </div>
 
                 {/* Size (Quantity) */}
-                <div className="text-white">
-                  {order.quantity.toFixed(6)}
-                </div>
+                <div className="text-white">{order.quantity.toFixed(6)}</div>
 
                 {/* Entry Price */}
                 <div className="text-white">
-                  ${Number((order.entryPrice)/100).toLocaleString()}
+                  ${Number(order.entryPrice / 100).toLocaleString()}
                 </div>
 
                 {/* Current Price */}
                 <div className="text-white">
-                  {currentPrice > 0 ? `$${currentPrice.toLocaleString()}` : '-'}
+                  {currentPrice > 0 ? `$${currentPrice.toLocaleString()}` : "-"}
                 </div>
 
                 {/* Margin */}
-                <div className="text-white">
-                  ${Number(order.margin)/100}
-                </div>
+                <div className="text-white">${Number(order.margin) / 100}</div>
 
                 {/* Leverage */}
-                <div className="text-white">
-                  {order.leverage}x
-                </div>
+                <div className="text-white">{order.leverage}x</div>
 
                 {/* P&L */}
                 <div className={`font-medium ${getPnLColor(pnl)}`}>
                   <div>${pnl.toFixed(2)}</div>
                   <div className="text-xs">
-                    ({pnlPercentage > 0 ? '+' : ''}{pnlPercentage.toFixed(2)}%)
+                    ({pnlPercentage > 0 ? "+" : ""}
+                    {pnlPercentage.toFixed(2)}%)
                   </div>
                 </div>
 
                 {/* Status */}
                 <div className="flex items-center">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    order.status === 'OPEN' ? 'bg-green-600/20 text-green-400' :
-                    order.status === 'PENDING' ? 'bg-yellow-600/20 text-yellow-400' :
-                    'bg-gray-600/20 text-gray-400'
-                  }`}>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      order.status === "OPEN"
+                        ? "bg-green-600/20 text-green-400"
+                        : order.status === "PENDING"
+                          ? "bg-yellow-600/20 text-yellow-400"
+                          : "bg-gray-600/20 text-gray-400"
+                    }`}
+                  >
                     {order.status}
                   </span>
                 </div>
 
                 {/* Action */}
                 <div>
-                  {order.status === 'OPEN' && onCloseOrder && (
+                  {order.status === "OPEN" && onCloseOrder && (
                     <button
                       onClick={() => onCloseOrder(order.id)}
                       className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded-lg transition-colors"
@@ -205,9 +216,11 @@ export const OrdersComponent: React.FC<OrdersComponentProps> = ({
         </div>
       )}
 
-      {history === 'OPEN' && filteredOrders.length > 0 && (
+      {history === "OPEN" && filteredOrders.length > 0 && (
         <div className="mt-6 p-4 bg-[#0a0a0a] rounded-lg border border-[#1a1a1a]">
-          <h4 className="text-sm font-medium text-gray-300 mb-2">Portfolio Summary</h4>
+          <h4 className="text-sm font-medium text-gray-300 mb-2">
+            Portfolio Summary
+          </h4>
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div>
               <span className="text-gray-400">Total Positions: </span>
@@ -216,21 +229,29 @@ export const OrdersComponent: React.FC<OrdersComponentProps> = ({
             <div>
               <span className="text-gray-400">Total Margin: </span>
               <span className="text-white">
-                ${Number(filteredOrders.reduce((sum, order) => sum + order.margin, 0))/100}
+                $
+                {Number(
+                  filteredOrders.reduce((sum, order) => sum + order.margin, 0)
+                ) / 100}
               </span>
             </div>
             <div>
               <span className="text-gray-400">Total P&L: </span>
-              <span className={getPnLColor(
-                filteredOrders.reduce((sum, order) => {
-                  const { pnl } = calculatePnL(order);
-                  return sum + pnl;
-                }, 0)
-              )}>
-                ${filteredOrders.reduce((sum, order) => {
-                  const { pnl } = calculatePnL(order);
-                  return sum + pnl;
-                }, 0).toFixed(2)}
+              <span
+                className={getPnLColor(
+                  filteredOrders.reduce((sum, order) => {
+                    const { pnl } = calculatePnL(order);
+                    return sum + pnl;
+                  }, 0)
+                )}
+              >
+                $
+                {filteredOrders
+                  .reduce((sum, order) => {
+                    const { pnl } = calculatePnL(order);
+                    return sum + pnl;
+                  }, 0)
+                  .toFixed(2)}
               </span>
             </div>
           </div>
@@ -239,4 +260,3 @@ export const OrdersComponent: React.FC<OrdersComponentProps> = ({
     </div>
   );
 };
-

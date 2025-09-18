@@ -1,5 +1,5 @@
 "use client";
-import {OrdersComponent, OrderI} from "@/components/OrdersComponent";
+import { OrdersComponent, OrderI } from "@/components/OrdersComponent";
 import TradingView from "@/components/TradingView";
 import { useUser } from "@/context/UserContext";
 import { api } from "@/utils/api";
@@ -41,9 +41,11 @@ export default function Home() {
   const [slippage, setSlippage] = useState<number>(1);
   const [selected, setSelected] = useState<string | null>(null);
   const [render, setRender] = useState(0);
-  const [orderC, setOrderC] = useState(0)
+  const [orderC, setOrderC] = useState(0);
 
   const [balance, setBalance] = useState<number | null>(null);
+  const [initialBalance, setInitialBalance] = useState<number | null>(null);
+  const [previousBalance, setPreviousBalance] = useState<number | null>(null);
 
   const [orders, setOrders] = useState<OrderI[]>([]);
 
@@ -60,8 +62,20 @@ export default function Home() {
       {} as Record<string, Price>
     )
   );
+  const handlePnLUpdate = (totalPnL: number) => {
+    if (initialBalance !== null) {
+      setPreviousBalance(balance);
+      setBalance(initialBalance + totalPnL);
+    }
+  };
 
+  const getBalanceColor = () => {
+    if (previousBalance === null || balance === null) return "text-green-100";
 
+    if (balance > previousBalance) return "text-green-400"; // Increasing = Green
+    if (balance < previousBalance) return "text-red-400"; // Decreasing = Red
+    return "text-green-300"; // Same = Default
+  };
   useEffect(() => {
     const interval = setInterval(() => setRender((prev) => prev + 1), 300);
     return () => clearInterval(interval);
@@ -112,14 +126,14 @@ export default function Home() {
         type: selected,
         leverage: leverage || 1,
         quantity: Number(quantity),
-        margin: Number(Number(margin)*100) || 0,
+        margin: Number(Number(margin) * 100) || 0,
         slippage: Number(slippage) || null,
       });
 
       console.log("Order placed:", res.data);
       alert(res.data.message);
 
-      setOrderC((prev) => prev + 1)
+      setOrderC((prev) => prev + 1);
     } catch {
       console.error("Error placing order");
     }
@@ -127,7 +141,7 @@ export default function Home() {
   const fetchUserBalance = async () => {
     try {
       const res = await api.get("/balance");
-      setBalance(res.data.data.data.userBalance.USD.balance); 
+      setBalance(res.data.data.data.userBalance.USD.balance);
     } catch (err) {
       console.error("Error fetching balance", err);
     }
@@ -148,34 +162,35 @@ export default function Home() {
   const handleCloseOrder = async (orderId: string) => {
     try {
       console.log("Closing order:", orderId);
-      
+
       const response = await api.post("/trade/close", {
-        orderId: orderId
+        orderId: orderId,
       });
-      
+
       if (response.data.success) {
         console.log("Order closed successfully:", response.data);
         alert(`Order closed successfully!`);
-        
+
         // Refresh data
+        setOrderC((prev) => prev - 1);
         await fetchUserOrders();
         await fetchUserBalance();
-        
       } else {
         console.error("Failed to close order:", response.data);
         alert("Failed to close order. Please try again.");
       }
-      
     } catch (error) {
       console.error("Error closing order:", error);
       // @ts-expect-error it is configured in backend
       if (error.response?.status === 403) {
         alert("Invalid order ID or permission denied.");
-      // @ts-expect-error it is configured in backend
+        // @ts-expect-error it is configured in backend
       } else if (error.response?.status === 500) {
         alert("Server error occurred. Please try again later.");
       } else {
-        alert("Failed to close order. Please check your connection and try again.");
+        alert(
+          "Failed to close order. Please check your connection and try again."
+        );
       }
     }
   };
@@ -185,7 +200,12 @@ export default function Home() {
       try {
         if (!user) return;
         const res = await api.get("/balance");
-        setBalance(Number(res.data.data.data.userBalance.USD.balance)/100);
+        const balanceValue =
+          Number(res.data.data.data.userBalance.USD.balance) / 100;
+        setBalance(balanceValue);
+        if (initialBalance === null) {
+          setInitialBalance(balanceValue);
+        }
       } catch (err) {
         console.error("Error fetching balance", err);
       }
@@ -204,6 +224,10 @@ export default function Home() {
     fetchOrders();
     fetchBalance();
   }, [user, orderC]);
+
+  // if(!user){
+  //   router.push('/signin')
+  // }
 
   return (
     <div className="">
@@ -241,7 +265,9 @@ export default function Home() {
         <div className="flex items-center gap-4">
           <div className="text-pri md:cursor-pointer bg-neutral-800  rounded-md items-center hover:opacity-95 flex  py-1 px-4">
             <span className="text-sm text-gray-400 mr-2">Balance:</span>
-            <span className="text-green-100 font-semibold">${Number(balance?.toFixed(2))}</span>
+            <span className={`font-semibold ${getBalanceColor()}`}>
+              ${Number(balance?.toFixed(2))}
+            </span>
           </div>
           <button className="text-pri md:cursor-pointer bg-neutral-800  rounded-md items-center hover:opacity-95 flex  py-1 px-4">
             Deposit
@@ -307,7 +333,6 @@ export default function Home() {
                       <span>{price.toFixed(2)}</span>
                     </div>
                   </div>
-
                 </div>
               )
             )}
@@ -512,6 +537,7 @@ export default function Home() {
               setHistory={setHistory}
               currPrices={currPricesWsRef.current}
               onCloseOrder={handleCloseOrder}
+              onPnLUpdate={handlePnLUpdate}
             />
           </div>
         </div>

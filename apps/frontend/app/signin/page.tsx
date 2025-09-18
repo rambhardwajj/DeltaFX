@@ -26,6 +26,7 @@ export default function Signin() {
       );
 
       console.log("User signed in:", res.data);
+      router.push("/")
       alert(res.data.message)
       
     } catch (err) {

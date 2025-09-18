@@ -5,6 +5,7 @@ import { validate as uuidValidate } from "uuid";
 import { redisProducer } from "../config/redisProducer";
 import { CustomError } from "../utils/CustomError";
 import { waitForId } from "../utils/queueWorker";
+import { prisma } from "@repo/db";
 
 const assetMap: Record<string, string> = {
   BTC: "bookTicker.BTC_USDC",
@@ -104,3 +105,21 @@ export const closeOrder = asyncHandler(async (req, res) => {
 
   res.status(200).json(new ApiResponse(200, "close order done", orderId));
 });
+
+export const getClosedOrders = asyncHandler(async (req, res) =>{
+  const userId = req.user.id;
+  if( !userId) throw new CustomError(401, "userId not found");
+  let closedOrders
+  try {
+     closedOrders = await prisma.existingTrades.findMany({
+      where: {
+        userId: userId
+      }
+    })
+
+  } catch (error) {
+    throw new CustomError(404, "No closed order found")
+  }
+
+  res.status(200).json( new ApiResponse(200,"closed order returned", closedOrders))
+})
